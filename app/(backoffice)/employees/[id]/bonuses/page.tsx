@@ -5,7 +5,7 @@ import { createMonthlyBonusAction, deleteMonthlyBonusAction, updateMonthlyBonusA
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, Notice } from "@/components/ui/card";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { matchPayrollSelectValue, payrollCurrencySelectOptions } from "@/lib/countries";
@@ -69,18 +69,10 @@ export default async function EmployeeBonusesPage({ params, searchParams }: Bonu
         subtitle="Montos extra por mes con fecha y concepto. Solo editables hasta registrar el pago del mes."
       />
       <div className="space-y-6 p-6">
-        {searchParams.saved === "create" ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Bono registrado.</Card>
-        ) : null}
-        {searchParams.saved === "update" ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Bono actualizado.</Card>
-        ) : null}
-        {searchParams.saved === "delete" ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Bono eliminado.</Card>
-        ) : null}
-        {searchParams.error ? (
-          <Card className="border-red-200 bg-red-50 p-4 text-sm text-red-700">{searchParams.error}</Card>
-        ) : null}
+        {searchParams.saved === "create" ? <Notice tone="success">Bono registrado.</Notice> : null}
+        {searchParams.saved === "update" ? <Notice tone="success">Bono actualizado.</Notice> : null}
+        {searchParams.saved === "delete" ? <Notice tone="success">Bono eliminado.</Notice> : null}
+        {searchParams.error ? <Notice tone="error">{searchParams.error}</Notice> : null}
 
         <div className="flex flex-wrap gap-3">
           <Link href={`/employees/${employee.id}`}>

@@ -1,11 +1,7 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { placeholderPage } from "@/components/layout/module-placeholder";
 
-export default function RolesPage() {
-  return (
-    <ModulePlaceholder
-      title="Roles y permisos"
-      subtitle="Control de acceso por rol: admin, HR, manager, employee."
-      phase="FASE 2"
-    />
-  );
-}
+export default placeholderPage(
+  "Roles y permisos",
+  "Control de acceso por rol: admin, HR, manager, employee.",
+  "FASE 2"
+);

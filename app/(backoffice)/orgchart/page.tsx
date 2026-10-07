@@ -1,7 +1,3 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { placeholderPage } from "@/components/layout/module-placeholder";
 
-export default function OrgchartPage() {
-  return (
-    <ModulePlaceholder title="Organigrama" subtitle="Estructura jerarquica del equipo interno." phase="FASE 3" />
-  );
-}
+export default placeholderPage("Organigrama", "Estructura jerarquica del equipo interno.", "FASE 3");

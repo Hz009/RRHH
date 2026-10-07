@@ -425,23 +425,37 @@ export async function updateEmployee(id: string, input: Record<string, unknown>)
   return data;
 }
 
-export async function getSalaryHistory(employeeId: string): Promise<SalaryHistory[]> {
+async function listEmployeeHistory<T extends { employee_id: string; effective_date: string }>(
+  table: "salary_history" | "job_department_history",
+  employeeId: string,
+  mockRows: T[],
+  errorPrefix: string
+): Promise<T[]> {
   if (!isSupabaseConfigured()) {
-    return mockSalaryHistory
+    return mockRows
       .filter((row) => row.employee_id === employeeId)
       .sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime());
   }
 
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
-    .from("salary_history")
+    .from(table)
     .select("*")
     .eq("employee_id", employeeId)
     .order("effective_date", { ascending: false })
     .order("created_at", { ascending: false });
 
-  if (error) throw new Error(`Error loading salary history: ${error.message}`);
-  return data ?? [];
+  if (error) throw new Error(`${errorPrefix}: ${error.message}`);
+  return (data ?? []) as T[];
+}
+
+export function getSalaryHistory(employeeId: string) {
+  return listEmployeeHistory<SalaryHistory>(
+    "salary_history",
+    employeeId,
+    mockSalaryHistory,
+    "Error loading salary history"
+  );
 }
 
 export async function addSalaryRecord(input: Record<string, unknown>) {
@@ -582,23 +596,13 @@ export async function deleteSalaryRecord(input: Record<string, unknown>) {
   await syncEmployeeCurrentSalaryFromHistory(employee_id);
 }
 
-export async function getJobDepartmentHistory(employeeId: string): Promise<JobDepartmentHistory[]> {
-  if (!isSupabaseConfigured()) {
-    return mockJobDepartmentHistory
-      .filter((row) => row.employee_id === employeeId)
-      .sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime());
-  }
-
-  const supabase = createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("job_department_history")
-    .select("*")
-    .eq("employee_id", employeeId)
-    .order("effective_date", { ascending: false })
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(`Error loading job and department history: ${error.message}`);
-  return data ?? [];
+export function getJobDepartmentHistory(employeeId: string) {
+  return listEmployeeHistory<JobDepartmentHistory>(
+    "job_department_history",
+    employeeId,
+    mockJobDepartmentHistory,
+    "Error loading job and department history"
+  );
 }
 
 export async function addJobDepartmentRecord(input: Record<string, unknown>) {

@@ -5,10 +5,11 @@ import { registerMonthlyPaymentsAction, upsertMonthlyHoursAction } from "@/app/(
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, Notice } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Table } from "@/components/ui/table";
+import { employeeTypeLabel, paymentMethodLabel } from "@/lib/employee-display";
 import { formatCurrency } from "@/lib/utils";
 import { getCurrentUserRole, getEmployees } from "@/services/employees.service";
 import {
@@ -29,18 +30,6 @@ interface ReportsPageProps {
     page?: string;
   };
 }
-
-const typeLabel: Record<string, string> = {
-  full_time: "Full time",
-  part_time: "Part time",
-  hourly: "Pago por horas",
-};
-
-const paymentLabel: Record<string, string> = {
-  bank: "Banco",
-  paypal: "PayPal",
-  wise: "Wise",
-};
 
 function summarizeCurrencies(by: Record<string, number>): { headline: string; sub: string } {
   const entries = Object.entries(by).filter(([, v]) => v > 0);
@@ -110,24 +99,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         subtitle="Carga horas mensuales, registra pagos parciales y descarga TXT para contabilidad."
       />
       <div className="space-y-6 p-6">
-        {sp.saved === "hours" ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-            Horas mensuales guardadas correctamente.
-          </Card>
-        ) : null}
-        {sp.saved === "payments" ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-            Pagos del mes registrados correctamente en el historico.
-          </Card>
-        ) : null}
-        {sp.error ? (
-          <Card className="border-red-200 bg-red-50 p-4 text-sm text-red-700">{sp.error}</Card>
-        ) : null}
+        {sp.saved === "hours" ? <Notice tone="success">Horas mensuales guardadas correctamente.</Notice> : null}
+        {sp.saved === "payments" ? <Notice tone="success">Pagos del mes registrados correctamente en el historico.</Notice> : null}
+        {sp.error ? <Notice tone="error">{sp.error}</Notice> : null}
 
         {hasHourlyWithoutHours ? (
-          <Card className="border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <Notice tone="warning">
             Hay empleados por hora sin horas cargadas para este mes. El monto saldra en 0 hasta registrar horas.
-          </Card>
+          </Notice>
         ) : null}
 
         <Card>
@@ -263,9 +242,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     <p className="font-medium text-zinc-900">{row.fullName}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant="info">{typeLabel[row.employeeType] ?? row.employeeType}</Badge>
+                    <Badge variant="info">{employeeTypeLabel[row.employeeType] ?? row.employeeType}</Badge>
                   </td>
-                  <td className="px-4 py-3">{paymentLabel[row.paymentMethod] ?? row.paymentMethod}</td>
+                  <td className="px-4 py-3">{paymentMethodLabel[row.paymentMethod] ?? row.paymentMethod}</td>
                   <td className="px-4 py-3">{formatCurrency(row.baseAmount, row.currency)}</td>
                   <td className="px-4 py-3">
                     {row.bonusTotal > 0 ? (

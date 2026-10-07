@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { Topbar } from "@/components/layout/topbar";
-import { Card } from "@/components/ui/card";
+import { Card, Notice } from "@/components/ui/card";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { addJobDepartmentRecordAction, deleteJobDepartmentRecordAction, updateJobDepartmentRecordAction } from "@/app/(backoffice)/employees/actions";
@@ -40,21 +40,9 @@ export default async function EmployeeJobHistoryPage({ params, searchParams }: E
     <div>
       <Topbar title={`Cargo y departamento: ${employee.full_name}`} subtitle="Historial de cambios de cargo y departamento." />
       <div className="grid gap-6 p-6 lg:grid-cols-3">
-        {searchParams.saved === "job" ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 lg:col-span-3">
-            Se guardo el cambio de cargo y departamento.
-          </Card>
-        ) : null}
-        {searchParams.saved === "job_update" ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 lg:col-span-3">
-            Se actualizo el registro de cargo y departamento.
-          </Card>
-        ) : null}
-        {searchParams.saved === "job_delete" ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 lg:col-span-3">
-            Se elimino el registro de cargo y departamento.
-          </Card>
-        ) : null}
+        {searchParams.saved === "job" ? <Notice tone="success" className="lg:col-span-3">Se guardo el cambio de cargo y departamento.</Notice> : null}
+        {searchParams.saved === "job_update" ? <Notice tone="success" className="lg:col-span-3">Se actualizo el registro de cargo y departamento.</Notice> : null}
+        {searchParams.saved === "job_delete" ? <Notice tone="success" className="lg:col-span-3">Se elimino el registro de cargo y departamento.</Notice> : null}
 
         <Card title="Cargo y departamento actual" className="lg:col-span-1">
           <p className="text-sm text-zinc-600">Departamento actual</p>

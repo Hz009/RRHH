@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card, Notice } from "@/components/ui/card";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { matchPayrollSelectValue, payrollCurrencySelectOptions } from "@/lib/countries";
@@ -55,21 +55,9 @@ export default async function EmployeeSalaryPage({ params, searchParams }: Emplo
     <div>
       <Topbar title={`Salario: ${employee.full_name}`} subtitle="Salario actual e historial salarial del empleado." />
       <div className="grid gap-6 p-6 lg:grid-cols-3">
-        {salarySaved ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 lg:col-span-3">
-            Se guardo el cambio en el historial salarial.
-          </Card>
-        ) : null}
-        {salaryUpdated ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 lg:col-span-3">
-            Se actualizo el registro salarial correctamente.
-          </Card>
-        ) : null}
-        {salaryDeleted ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 lg:col-span-3">
-            Se elimino el registro salarial correctamente.
-          </Card>
-        ) : null}
+        {salarySaved ? <Notice tone="success" className="lg:col-span-3">Se guardo el cambio en el historial salarial.</Notice> : null}
+        {salaryUpdated ? <Notice tone="success" className="lg:col-span-3">Se actualizo el registro salarial correctamente.</Notice> : null}
+        {salaryDeleted ? <Notice tone="success" className="lg:col-span-3">Se elimino el registro salarial correctamente.</Notice> : null}
         <Card title="Salario actual" className="lg:col-span-1">
           <p className="text-3xl font-bold text-zinc-900">
             {formatCurrency(employee.current_salary_amount, employee.current_salary_currency)}

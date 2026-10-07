@@ -1,3 +1,15 @@
+export const employeeTypeLabel: Record<string, string> = {
+  full_time: "Full time",
+  part_time: "Part time",
+  hourly: "Pago por horas",
+};
+
+export const paymentMethodLabel: Record<string, string> = {
+  bank: "Banco",
+  paypal: "PayPal",
+  wise: "Wise",
+};
+
 /** Iniciales para avatar (max 2 caracteres). */
 export function employeeInitials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);

@@ -6,6 +6,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getCountryOptionsEs } from "@/lib/countries";
+import { employeeTypeLabel, paymentMethodLabel } from "@/lib/employee-display";
 import { formatCurrency, formatDate, formatDateOnlyLocal } from "@/lib/utils";
 import { getMonthlyBonusesForEmployee } from "@/services/bonuses.service";
 import { getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
@@ -15,18 +16,6 @@ interface EmployeeProfilePageProps {
     id: string;
   };
 }
-
-const employmentTypeLabel: Record<string, string> = {
-  full_time: "Full time",
-  part_time: "Part time",
-  hourly: "Pago por horas",
-};
-
-const paymentMethodLabel: Record<string, string> = {
-  bank: "Banco",
-  paypal: "PayPal",
-  wise: "Wise",
-};
 
 function countryLabel(code: string | null | undefined): string {
   if (!code) return "-";
@@ -160,7 +149,7 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
               </p>
               <p>
                 <span className="font-medium text-zinc-700">Tipo de empleado:</span>{" "}
-                {employmentTypeLabel[employee.employee_type] ?? employee.employee_type}
+                {employeeTypeLabel[employee.employee_type] ?? employee.employee_type}
               </p>
               <p>
                 <span className="font-medium text-zinc-700">Fecha de contratacion:</span> {employee.hire_date}

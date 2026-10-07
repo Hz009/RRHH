@@ -5,23 +5,12 @@ import { TimeClockCard } from "@/components/employee-portal/time-clock-card";
 import { Topbar } from "@/components/layout/topbar";
 import { Card } from "@/components/ui/card";
 import { Table } from "@/components/ui/table";
+import { employeeTypeLabel, paymentMethodLabel } from "@/lib/employee-display";
 import { formatCurrency, formatDateOnlyLocal } from "@/lib/utils";
 import { getLastPunchEvent, isShiftOpenFromLastEvent } from "@/services/attendance.service";
 import { getCurrentEmployee } from "@/services/employees.service";
 import { getFlexHoursBalance } from "@/services/flex-hours.service";
 import { getMyPaymentHistoryDetailed } from "@/services/payments.service";
-
-const typeLabel: Record<string, string> = {
-  full_time: "Full time",
-  part_time: "Part time",
-  hourly: "Pago por horas",
-};
-
-const paymentLabel: Record<string, string> = {
-  bank: "Banco",
-  paypal: "PayPal",
-  wise: "Wise",
-};
 
 export default async function EmployeePortalPage() {
   const currentEmployee = await getCurrentEmployee();
@@ -119,8 +108,8 @@ export default async function EmployeePortalPage() {
                   {payments.map((row) => (
                     <tr key={row.id} className="border-t border-zinc-200">
                       <td className="px-4 py-3">{row.periodMonth}</td>
-                      <td className="px-4 py-3">{typeLabel[row.employeeType] ?? row.employeeType}</td>
-                      <td className="px-4 py-3">{paymentLabel[row.paymentMethod] ?? row.paymentMethod}</td>
+                      <td className="px-4 py-3">{employeeTypeLabel[row.employeeType] ?? row.employeeType}</td>
+                      <td className="px-4 py-3">{paymentMethodLabel[row.paymentMethod] ?? row.paymentMethod}</td>
                       <td className="px-4 py-3">{formatCurrency(row.salaryPortion, row.currency)}</td>
                       <td className="px-4 py-3">
                         {row.bonusTotalInPayCurrency > 0 ? (

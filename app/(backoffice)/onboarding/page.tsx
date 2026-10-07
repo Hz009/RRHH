@@ -1,11 +1,7 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { placeholderPage } from "@/components/layout/module-placeholder";
 
-export default function OnboardingPage() {
-  return (
-    <ModulePlaceholder
-      title="Onboarding y offboarding"
-      subtitle="Flujos de incorporacion y salida de empleados."
-      phase="FASE 3"
-    />
-  );
-}
+export default placeholderPage(
+  "Onboarding y offboarding",
+  "Flujos de incorporacion y salida de empleados.",
+  "FASE 3"
+);

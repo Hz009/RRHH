@@ -1,11 +1,7 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { placeholderPage } from "@/components/layout/module-placeholder";
 
-export default function AuditPage() {
-  return (
-    <ModulePlaceholder
-      title="Auditoria de cambios"
-      subtitle="Trazabilidad de operaciones criticas del sistema."
-      phase="FASE 2"
-    />
-  );
-}
+export default placeholderPage(
+  "Auditoria de cambios",
+  "Trazabilidad de operaciones criticas del sistema.",
+  "FASE 2"
+);

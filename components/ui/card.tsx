@@ -9,6 +9,24 @@ interface CardProps {
   children: React.ReactNode;
 }
 
+const noticeTone = {
+  success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  error: "border-red-200 bg-red-50 text-red-700",
+  warning: "border-amber-200 bg-amber-50 text-amber-800",
+} as const;
+
+export function Notice({
+  tone,
+  children,
+  className,
+}: {
+  tone: keyof typeof noticeTone;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <Card className={cn("p-4 text-sm", noticeTone[tone], className)}>{children}</Card>;
+}
+
 export function Card({ title, description, className, bodyClassName, children }: CardProps) {
   return (
     <section

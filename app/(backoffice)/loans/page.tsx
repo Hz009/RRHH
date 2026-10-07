@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, Notice } from "@/components/ui/card";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Table } from "@/components/ui/table";
@@ -61,20 +61,14 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
     <div>
       <Topbar title="Prestamos a empleados" subtitle="Control de prestamos, saldo pendiente y cuotas." />
       <div className="space-y-6 p-6">
-        {paymentSaved ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Se registro pago.</Card>
-        ) : null}
+        {paymentSaved ? <Notice tone="success">Se registro pago.</Notice> : null}
         {loanCreated ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+          <Notice tone="success">
             {isAdmin ? "Se registro el prestamo correctamente." : "Se envio la solicitud de prestamo. Sera revisada por el administrador."}
-          </Card>
+          </Notice>
         ) : null}
-        {loanApproved ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Prestamo aprobado.</Card>
-        ) : null}
-        {loanRejected ? (
-          <Card className="border-red-200 bg-red-50 p-4 text-sm text-red-800">Prestamo rechazado.</Card>
-        ) : null}
+        {loanApproved ? <Notice tone="success">Prestamo aprobado.</Notice> : null}
+        {loanRejected ? <Notice tone="error" className="text-red-800">Prestamo rechazado.</Notice> : null}
 
         <Card>
           <form className="grid gap-3 md:grid-cols-4">

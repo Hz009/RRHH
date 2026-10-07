@@ -7,6 +7,12 @@ interface ModulePlaceholderProps {
   phase: string;
 }
 
+export function placeholderPage(title: string, subtitle: string, phase: string) {
+  return function PlaceholderPage() {
+    return <ModulePlaceholder title={title} subtitle={subtitle} phase={phase} />;
+  };
+}
+
 export function ModulePlaceholder({ title, subtitle, phase }: ModulePlaceholderProps) {
   return (
     <div>

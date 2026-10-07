@@ -89,114 +89,51 @@ export async function resetEmployeePasswordAction(
   return { ok: true };
 }
 
-export async function addSalaryRecordAction(formData: FormData) {
+async function saveHistoryAction(
+  formData: FormData,
+  kind: "salary" | "job",
+  action: "create" | "update" | "delete",
+  saved: string,
+  run: (payload: Record<string, unknown>) => Promise<{ id: string } | void>
+) {
   const payload = Object.fromEntries(formData.entries());
-  const salaryRecord = await addSalaryRecord(payload);
   const employeeId = String(payload.employee_id ?? "");
+  const result = await run(payload);
+  const entityName = kind === "salary" ? "salary_history" : "job_department_history";
 
   await createAuditLog({
-    module: "salary_history",
-    action: "create",
-    entityName: "salary_history",
-    entityId: salaryRecord.id,
-    newData: salaryRecord,
+    module: entityName,
+    action,
+    entityName,
+    entityId: result?.id ?? String(payload.id ?? "unknown"),
+    newData: result ?? payload,
   });
 
-  revalidatePath(`/employees/${employeeId}/salary`);
+  revalidatePath(`/employees/${employeeId}/${kind}`);
   revalidatePath("/employees");
-  redirect(`/employees/${employeeId}/salary?saved=salary`);
+  redirect(`/employees/${employeeId}/${kind}?saved=${saved}`);
 }
 
-export async function updateSalaryRecordAction(formData: FormData) {
-  const payload = Object.fromEntries(formData.entries());
-  const salaryRecord = await updateSalaryRecord(payload);
-  const employeeId = String(payload.employee_id ?? "");
-
-  await createAuditLog({
-    module: "salary_history",
-    action: "update",
-    entityName: "salary_history",
-    entityId: salaryRecord.id,
-    newData: salaryRecord,
-  });
-
-  revalidatePath(`/employees/${employeeId}/salary`);
-  revalidatePath("/employees");
-  redirect(`/employees/${employeeId}/salary?saved=salary_update`);
+export function addSalaryRecordAction(formData: FormData) {
+  return saveHistoryAction(formData, "salary", "create", "salary", addSalaryRecord);
 }
 
-export async function deleteSalaryRecordAction(formData: FormData) {
-  const payload = Object.fromEntries(formData.entries());
-  const employeeId = String(payload.employee_id ?? "");
-  const salaryRecordId = String(payload.id ?? "unknown");
-
-  await deleteSalaryRecord(payload);
-
-  await createAuditLog({
-    module: "salary_history",
-    action: "delete",
-    entityName: "salary_history",
-    entityId: salaryRecordId,
-    newData: payload,
-  });
-
-  revalidatePath(`/employees/${employeeId}/salary`);
-  revalidatePath("/employees");
-  redirect(`/employees/${employeeId}/salary?saved=salary_delete`);
+export function updateSalaryRecordAction(formData: FormData) {
+  return saveHistoryAction(formData, "salary", "update", "salary_update", updateSalaryRecord);
 }
 
-export async function addJobDepartmentRecordAction(formData: FormData) {
-  const payload = Object.fromEntries(formData.entries());
-  const jobRecord = await addJobDepartmentRecord(payload);
-  const employeeId = String(payload.employee_id ?? "");
-
-  await createAuditLog({
-    module: "job_department_history",
-    action: "create",
-    entityName: "job_department_history",
-    entityId: jobRecord.id,
-    newData: jobRecord,
-  });
-
-  revalidatePath(`/employees/${employeeId}/job`);
-  revalidatePath("/employees");
-  redirect(`/employees/${employeeId}/job?saved=job`);
+export function deleteSalaryRecordAction(formData: FormData) {
+  return saveHistoryAction(formData, "salary", "delete", "salary_delete", deleteSalaryRecord);
 }
 
-export async function updateJobDepartmentRecordAction(formData: FormData) {
-  const payload = Object.fromEntries(formData.entries());
-  const jobRecord = await updateJobDepartmentRecord(payload);
-  const employeeId = String(payload.employee_id ?? "");
-
-  await createAuditLog({
-    module: "job_department_history",
-    action: "update",
-    entityName: "job_department_history",
-    entityId: jobRecord.id,
-    newData: jobRecord,
-  });
-
-  revalidatePath(`/employees/${employeeId}/job`);
-  revalidatePath("/employees");
-  redirect(`/employees/${employeeId}/job?saved=job_update`);
+export function addJobDepartmentRecordAction(formData: FormData) {
+  return saveHistoryAction(formData, "job", "create", "job", addJobDepartmentRecord);
 }
 
-export async function deleteJobDepartmentRecordAction(formData: FormData) {
-  const payload = Object.fromEntries(formData.entries());
-  const employeeId = String(payload.employee_id ?? "");
-  const recordId = String(payload.id ?? "unknown");
+export function updateJobDepartmentRecordAction(formData: FormData) {
+  return saveHistoryAction(formData, "job", "update", "job_update", updateJobDepartmentRecord);
+}
 
-  await deleteJobDepartmentRecord(payload);
-
-  await createAuditLog({
-    module: "job_department_history",
-    action: "delete",
-    entityName: "job_department_history",
-    entityId: recordId,
-    newData: payload,
-  });
-
-  revalidatePath(`/employees/${employeeId}/job`);
-  revalidatePath("/employees");
-  redirect(`/employees/${employeeId}/job?saved=job_delete`);
+export function deleteJobDepartmentRecordAction(formData: FormData) {
+  return saveHistoryAction(formData, "job", "delete", "job_delete", deleteJobDepartmentRecord);
 }

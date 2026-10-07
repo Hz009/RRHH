@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, Notice } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Table } from "@/components/ui/table";
@@ -53,16 +53,8 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     <div>
       <Topbar title="Empleados" subtitle="Gestion del personal de back office con filtros y acciones clave." />
       <div className="space-y-6 p-6">
-        {savedCreate ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-            Se creo el empleado correctamente.
-          </Card>
-        ) : null}
-        {savedUpdate ? (
-          <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-            Se guardaron los cambios del empleado.
-          </Card>
-        ) : null}
+        {savedCreate ? <Notice tone="success">Se creo el empleado correctamente.</Notice> : null}
+        {savedUpdate ? <Notice tone="success">Se guardaron los cambios del empleado.</Notice> : null}
         <Card>
           <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <Input name="q" placeholder="Buscar por nombre o email" defaultValue={searchParams.q} />

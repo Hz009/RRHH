@@ -1,11 +1,7 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { placeholderPage } from "@/components/layout/module-placeholder";
 
-export default function AttendancePage() {
-  return (
-    <ModulePlaceholder
-      title="Fichaje y asistencia"
-      subtitle="Control de entradas, salidas y asistencia."
-      phase="FASE 3"
-    />
-  );
-}
+export default placeholderPage(
+  "Fichaje y asistencia",
+  "Control de entradas, salidas y asistencia.",
+  "FASE 3"
+);
