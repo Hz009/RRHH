@@ -7,6 +7,7 @@ import { Card, Notice } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Table } from "@/components/ui/table";
+import { employmentStatusLabel } from "@/lib/employee-display";
 import { LINGUAMEETING_DEPARTMENTS } from "@/lib/employee-taxonomy";
 import { formatCurrency } from "@/lib/utils";
 import { getCurrentUserRole, getEmployeesPaged } from "@/services/employees.service";
@@ -76,9 +77,9 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
               className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm"
             >
               <option value="">Todos los estados</option>
-              <option value="active">active</option>
-              <option value="on_leave">on_leave</option>
-              <option value="inactive">inactive</option>
+              <option value="active">Activo</option>
+              <option value="on_leave">De baja</option>
+              <option value="inactive">Inactivo</option>
             </select>
             <select
               name="emp_type"
@@ -136,7 +137,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                   <td className="px-4 py-3">{employee.job_title}</td>
                   <td className="px-4 py-3">
                     <Badge variant={employee.employment_status === "active" ? "success" : "warning"}>
-                      {employee.employment_status}
+                      {employmentStatusLabel[employee.employment_status] ?? employee.employment_status}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">

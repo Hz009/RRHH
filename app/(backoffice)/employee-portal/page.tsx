@@ -8,9 +8,9 @@ import { Table } from "@/components/ui/table";
 import { employeeTypeLabel, paymentMethodLabel } from "@/lib/employee-display";
 import { formatCurrency, formatDateOnlyLocal } from "@/lib/utils";
 import { getLastPunchEvent, isShiftOpenFromLastEvent } from "@/services/attendance.service";
-import { getCurrentEmployee } from "@/services/employees.service";
+import { getCurrentEmployee, getMySalaryHistory } from "@/services/employees.service";
 import { getFlexHoursBalance } from "@/services/flex-hours.service";
-import { getMyPaymentHistoryDetailed } from "@/services/payments.service";
+import { getMyPaymentHistoryDetailed, getMyPayrollOverview } from "@/services/payments.service";
 
 export default async function EmployeePortalPage() {
   const currentEmployee = await getCurrentEmployee();
@@ -22,8 +22,10 @@ export default async function EmployeePortalPage() {
     currentEmployee.employee_type === "hourly" &&
     (currentEmployee.hourly_hours_source ?? "manual_monthly") === "punch";
 
-  const [payments, lastPunch, flexBal] = await Promise.all([
+  const [payments, payrollMonths, salaryHistory, lastPunch, flexBal] = await Promise.all([
     getMyPaymentHistoryDetailed(),
+    getMyPayrollOverview(),
+    getMySalaryHistory(),
     showPunch ? getLastPunchEvent(currentEmployee.id) : Promise.resolve(null),
     currentEmployee.employee_type === "full_time" || currentEmployee.employee_type === "part_time"
       ? getFlexHoursBalance(currentEmployee.id)
@@ -68,7 +70,59 @@ export default async function EmployeePortalPage() {
             <p>
               <span className="font-medium text-zinc-700">Cargo:</span> {currentEmployee.job_title}
             </p>
+            <p>
+              <span className="font-medium text-zinc-700">Sueldo actual:</span>{" "}
+              {formatCurrency(Number(currentEmployee.current_salary_amount ?? 0), currentEmployee.current_salary_currency || "USD")}
+            </p>
           </div>
+        </Card>
+
+        <Card title="Historial salarial">
+          {salaryHistory.length === 0 ? (
+            <p className="text-sm text-zinc-500">Aun no hay cambios de sueldo registrados.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {salaryHistory.map((row) => (
+                <li key={row.id}>
+                  {formatDateOnlyLocal(row.effective_date)} · {formatCurrency(Number(row.amount), row.currency)}
+                  {row.reason ? ` · ${row.reason}` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card title="Pagos hechos y pendientes">
+          <Table>
+            <table className="min-w-full text-sm">
+              <thead className="bg-zinc-50 text-left text-zinc-600">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Mes</th>
+                  <th className="px-4 py-3 font-medium">A pagar</th>
+                  <th className="px-4 py-3 font-medium">Pagado</th>
+                  <th className="px-4 py-3 font-medium">Pendiente</th>
+                  <th className="px-4 py-3 font-medium">Estado</th>
+                  <th className="px-4 py-3 font-medium">Boleta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payrollMonths.map((row) => (
+                  <tr key={row.periodMonth} className="border-t border-zinc-200">
+                    <td className="px-4 py-3">{row.periodMonth}</td>
+                    <td className="px-4 py-3">{formatCurrency(row.amountDue, row.currency)}</td>
+                    <td className="px-4 py-3">{formatCurrency(row.amountPaid, row.currency)}</td>
+                    <td className="px-4 py-3">{formatCurrency(row.pending, row.currency)}</td>
+                    <td className="px-4 py-3">{row.paid ? "Pagado" : "Pendiente"}</td>
+                    <td className="px-4 py-3">
+                      <Link href={`/employee-portal/boleta?month=${row.periodMonth}`} className="text-lm-dark-teal underline">
+                        Ver boleta
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Table>
         </Card>
 
         {flexBal !== null ? (

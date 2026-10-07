@@ -9,7 +9,7 @@ import { Card, Notice } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Table } from "@/components/ui/table";
-import { employeeTypeLabel, paymentMethodLabel } from "@/lib/employee-display";
+import { employeeTypeLabel, employmentStatusLabel, paymentMethodLabel } from "@/lib/employee-display";
 import { formatCurrency } from "@/lib/utils";
 import { getCurrentUserRole, getEmployees } from "@/services/employees.service";
 import {
@@ -197,8 +197,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </Card>
           <Card title="Como se calcula el monto">
             <p className="text-sm text-zinc-600">
-              Full/Part time: base mensual del mes + <span className="font-medium">bonos</span> del periodo. Por horas:{" "}
-              <span className="font-medium">tarifa</span> x <span className="font-medium">horas del mes</span> + bonos.
+              Tiempo completo o parcial: sueldo del mes + bonos + incentivos − descuentos − cuota de préstamo.
+              Por horas: tarifa x horas del mes, con los mismos extras.
+              Si la persona ficha, las horas salen de la entrada y la salida. Si no ficha, administración las escribe aquí.
             </p>
             <p className="mt-3 text-xs text-zinc-500">
               La tabla muestra 10 filas por pagina ordenadas por monto a pagar (mayor a menor). Las casillas de seleccion
@@ -218,7 +219,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                 <th className="px-4 py-3 font-medium">Base</th>
                 <th className="px-4 py-3 font-medium">Bonos</th>
                 <th className="px-4 py-3 font-medium">Horas mes</th>
-                <th className="px-4 py-3 font-medium">Monto a pagar</th>
+                <th className="px-4 py-3 font-medium">Pendiente</th>
+                <th className="px-4 py-3 font-medium">Moneda</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
               </tr>
             </thead>
@@ -240,6 +242,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-zinc-900">{row.fullName}</p>
+                    <p className="text-xs text-zinc-500">
+                      {employmentStatusLabel[row.employmentStatus] ?? row.employmentStatus}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant="info">{employeeTypeLabel[row.employeeType] ?? row.employeeType}</Badge>
@@ -254,7 +259,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {row.employeeType === "hourly" ? (
+                    {row.hourlyHoursSource === "manual_monthly" ? (
                       <form action={upsertMonthlyHoursAction} className="flex items-center gap-2">
                         <input type="hidden" name="employee_id" value={row.employeeId} />
                         <input type="hidden" name="period_month" value={month} />
@@ -271,12 +276,25 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                           Guardar
                         </Button>
                       </form>
+                    ) : row.hourlyHoursSource === "punch" ? (
+                      <span>
+                        {row.monthHours.toFixed(2)}
+                        <span className="mt-1 block text-xs text-zinc-500">Fichaje</span>
+                      </span>
                     ) : (
                       <span className="text-zinc-500">N/A</span>
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium text-lm-dark-teal">
                     {formatCurrency(row.amountToPay, row.currency)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <p>{row.currency}</p>
+                    {row.currencyMismatch ? (
+                      <p className="text-xs font-medium text-amber-700">REVISAR</p>
+                    ) : (
+                      <p className="text-xs text-zinc-400">OK</p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {row.alreadyRegistered ? (

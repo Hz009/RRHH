@@ -202,6 +202,7 @@ export interface Database {
           days_requested: number;
           request_status: VacationRequestStatus;
           reason: string | null;
+          request_kind: string | null;
           approved_by: string | null;
           approved_at: string | null;
           created_at: string;

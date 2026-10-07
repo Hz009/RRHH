@@ -242,6 +242,7 @@ create table public.vacation_requests (
   days_requested numeric(5,2) not null check (days_requested > 0),
   request_status public.vacation_request_status not null default 'pending',
   reason text,
+  request_kind text not null default 'vacation' check (request_kind in ('vacation', 'permission')),
   approved_by uuid references public.profiles (id) on delete set null,
   approved_at timestamptz,
   created_at timestamptz not null default now(),
@@ -334,6 +335,25 @@ create index idx_employee_monthly_bonuses_employee_period
 create trigger trg_employee_monthly_bonuses_updated_at
 before update on public.employee_monthly_bonuses
 for each row execute function public.set_updated_at();
+
+create table public.employee_pay_adjustments (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references public.employees (id) on delete cascade,
+  kind text not null check (kind in ('incentive', 'discount')),
+  adjustment_type text not null,
+  comment text,
+  amount numeric(12,2) not null check (amount > 0),
+  currency text not null,
+  recurrence text not null check (recurrence in ('once', 'monthly')),
+  period_month date not null,
+  active boolean not null default true,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index idx_employee_pay_adjustments_employee
+  on public.employee_pay_adjustments (employee_id, period_month desc);
 
 -- ==========================================
 -- Documents and acknowledgements
@@ -656,6 +676,17 @@ using (public.can_view_employee(employee_id));
 
 create policy "employee_monthly_bonuses_manage_admin_only"
 on public.employee_monthly_bonuses for all
+using (public.current_user_role() = 'admin')
+with check (public.current_user_role() = 'admin');
+
+alter table public.employee_pay_adjustments enable row level security;
+
+create policy "employee_pay_adjustments_select_by_role_scope"
+on public.employee_pay_adjustments for select
+using (public.can_view_employee(employee_id));
+
+create policy "employee_pay_adjustments_manage_admin_only"
+on public.employee_pay_adjustments for all
 using (public.current_user_role() = 'admin')
 with check (public.current_user_role() = 'admin');
 

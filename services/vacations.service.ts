@@ -91,8 +91,13 @@ export async function createVacationRequest(input: Record<string, unknown>) {
   const employee_id = String(input.employee_id ?? "");
   const start_date = String(input.start_date ?? "");
   const end_date = String(input.end_date ?? "");
-  const reason = input.reason ? String(input.reason) : null;
+  const reason = input.reason ? String(input.reason).trim() : null;
+  const requestKind = String(input.request_kind ?? "vacation") === "permission" ? "permission" : "vacation";
   const request_status: VacationRequestStatus = "pending";
+
+  if (requestKind === "permission" && !reason) {
+    throw new Error("El permiso necesita el tema concreto.");
+  }
 
   if (!employee_id || !start_date || !end_date) {
     throw new Error("Datos incompletos para solicitud de vacaciones.");
@@ -112,6 +117,7 @@ export async function createVacationRequest(input: Record<string, unknown>) {
       days_requested,
       request_status,
       reason,
+      request_kind: requestKind,
       approved_by: null,
       approved_at: null,
       created_at: new Date().toISOString(),
@@ -160,24 +166,30 @@ export async function createVacationRequest(input: Record<string, unknown>) {
   const employeeData = allEmployees.find((e) => e.id === employee_id);
 
   if (employeeData) {
+    if (employeeData.employment_status !== "active") {
+      throw new Error("Solo un empleado activo puede solicitar vacaciones.");
+    }
+
     if (start_date < employeeData.hire_date) {
       throw new Error(
         `No se pueden solicitar vacaciones antes de la fecha de contratacion (${employeeData.hire_date}).`
       );
     }
 
-    const summary = calculateVacationSummary({
-      employeeId: employee_id,
-      employeeName: employeeData.full_name,
-      annualAllocation: employeeData.vacation_days_per_year,
-      requests: allRequests,
-      year: new Date(start_date).getFullYear(),
-    });
+    if (requestKind === "vacation") {
+      const summary = calculateVacationSummary({
+        employeeId: employee_id,
+        employeeName: employeeData.full_name,
+        annualAllocation: employeeData.vacation_days_per_year,
+        requests: allRequests,
+        year: new Date(start_date).getFullYear(),
+      });
 
-    if (days_requested > summary.remainingAvailable) {
-      throw new Error(
-        `El empleado solo tiene ${summary.remainingAvailable} dia(s) disponible(s), pero la solicitud es de ${days_requested} dia(s).`
-      );
+      if (days_requested > summary.remainingAvailable) {
+        throw new Error(
+          `El empleado solo tiene ${summary.remainingAvailable} dia(s) disponible(s), pero la solicitud es de ${days_requested} dia(s).`
+        );
+      }
     }
   }
 
@@ -190,11 +202,17 @@ export async function createVacationRequest(input: Record<string, unknown>) {
       days_requested,
       request_status,
       reason,
+      request_kind: requestKind,
     })
     .select("*")
     .single();
 
-  if (error) throw new Error(`Error creating vacation request: ${error.message}`);
+  if (error) {
+    if (/request_kind/i.test(error.message)) {
+      throw new Error("Para guardar permisos hay que actualizar la base de datos con supabase/incremental_pay_slip.sql.");
+    }
+    throw new Error(`Error creating vacation request: ${error.message}`);
+  }
   return data;
 }
 
@@ -263,7 +281,10 @@ function calculateVacationSummary({
   year: number;
 }): VacationBalanceSummary {
   const approvedForEmployee = requests.filter(
-    (request) => request.employee_id === employeeId && request.request_status === "approved"
+    (request) =>
+      request.employee_id === employeeId &&
+      request.request_status === "approved" &&
+      request.request_kind !== "permission"
   );
   const approvedCurrentYear = approvedForEmployee.filter((request) => new Date(request.start_date).getFullYear() === year);
   const approvedPreviousYear = approvedForEmployee.filter((request) => new Date(request.start_date).getFullYear() === year - 1);
@@ -277,7 +298,10 @@ function calculateVacationSummary({
   const lostCarryover = Math.max(previousYearUnused - carryoverUsedInJanuary, 0);
 
   const pendingForEmployee = requests.filter(
-    (request) => request.employee_id === employeeId && request.request_status === "pending"
+    (request) =>
+      request.employee_id === employeeId &&
+      request.request_status === "pending" &&
+      request.request_kind !== "permission"
   );
   const pendingCurrentYear = pendingForEmployee.filter((request) => new Date(request.start_date).getFullYear() === year);
   const scheduledDays = pendingCurrentYear.reduce((sum, request) => sum + Number(request.days_requested || 0), 0);

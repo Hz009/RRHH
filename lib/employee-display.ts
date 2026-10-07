@@ -10,6 +10,12 @@ export const paymentMethodLabel: Record<string, string> = {
   wise: "Wise",
 };
 
+export const employmentStatusLabel: Record<string, string> = {
+  active: "Activo",
+  on_leave: "De baja",
+  inactive: "Inactivo",
+};
+
 /** Iniciales para avatar (max 2 caracteres). */
 export function employeeInitials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);

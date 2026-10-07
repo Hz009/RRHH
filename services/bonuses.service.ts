@@ -183,11 +183,6 @@ export async function createMonthlyBonus(input: Record<string, unknown>) {
     );
   }
 
-  const paid = await isEmployeePeriodPaid(employee_id, periodMonthYm);
-  if (paid) {
-    throw new Error("Este mes ya tiene pago registrado. No se pueden añadir bonos.");
-  }
-
   const admin = createSupabaseAdminClient();
   const { data: emp, error: empErr } = await admin
     .from("employees")
@@ -252,11 +247,6 @@ export async function updateMonthlyBonus(input: Record<string, unknown>) {
     throw new Error(
       `La moneda del bono debe ser la misma que la nomina del periodo (${expectedCurrency}). Ajusta el campo moneda.`
     );
-  }
-
-  const paid = await isEmployeePeriodPaid(employee_id, periodMonthYm);
-  if (paid) {
-    throw new Error("Este mes ya tiene pago registrado. No se puede editar el bono.");
   }
 
   const admin = createSupabaseAdminClient();
@@ -330,12 +320,6 @@ export async function deleteMonthlyBonus(input: Record<string, unknown>) {
 
   if (loadErr) throw new Error(`Error cargando bono: ${loadErr.message}`);
   if (!row) throw new Error("Bono no encontrado.");
-
-  const periodYm = periodYmFromDate(row.period_month);
-  const paid = await isEmployeePeriodPaid(employee_id, periodYm);
-  if (paid) {
-    throw new Error("Este mes ya tiene pago registrado. No se puede eliminar el bono.");
-  }
 
   const { error } = await admin.from("employee_monthly_bonuses").delete().eq("id", id).eq("employee_id", employee_id);
 

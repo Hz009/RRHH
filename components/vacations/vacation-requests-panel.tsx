@@ -90,7 +90,7 @@ export function VacationRequestsPanel({
                       dias)
                     </p>
                     <p className="text-xs text-zinc-600">
-                      {request.reason ?? "Sin motivo"}
+                      {request.request_kind === "permission" ? "Permiso" : "Vacaciones"} · {request.reason ?? "Sin motivo"}
                     </p>
                   </div>
                   {canApprove ? (
@@ -168,7 +168,7 @@ export function VacationRequestsPanel({
                       </span>
                     </td>
                     <td className="px-3 py-2 text-zinc-600">
-                      {request.reason ?? "-"}
+                      {request.request_kind === "permission" ? "Permiso" : "Vacaciones"} · {request.reason ?? "-"}
                     </td>
                     <td className="px-3 py-2 text-zinc-600">
                       {request.approved_by

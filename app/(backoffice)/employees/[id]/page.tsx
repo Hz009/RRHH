@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getCountryOptionsEs } from "@/lib/countries";
-import { employeeTypeLabel, paymentMethodLabel } from "@/lib/employee-display";
+import { employeeTypeLabel, employmentStatusLabel, paymentMethodLabel } from "@/lib/employee-display";
 import { formatCurrency, formatDate, formatDateOnlyLocal } from "@/lib/utils";
 import { getMonthlyBonusesForEmployee } from "@/services/bonuses.service";
 import { getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
@@ -157,7 +157,7 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
               <p>
                 <span className="font-medium text-zinc-700">Estado:</span>{" "}
                 <Badge variant={employee.employment_status === "active" ? "success" : "warning"}>
-                  {employee.employment_status}
+                  {employmentStatusLabel[employee.employment_status] ?? employee.employment_status}
                 </Badge>
               </p>
               <p>
@@ -262,8 +262,7 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
         <Card title="Bonos por mes">
           <p className="mb-3 text-sm text-zinc-600">
             Montos extra por periodo de nomina (fecha dentro del mes y concepto). Se suman al pago del mes en{" "}
-            <span className="font-medium text-zinc-800">Pagos</span>. Solo el admin puede crear o editar mientras el mes no
-            este pagado.
+            <span className="font-medium text-zinc-800">Pagos</span>. Si el mes ya se pagó y se añade un bono, ese importe queda pendiente hasta registrarlo.
           </p>
           {previewBonuses.length > 0 ? (
             <ul className="mb-3 space-y-2 text-sm">
@@ -284,6 +283,12 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
             className="inline-flex rounded-md border border-lm-aqua/30 bg-lm-sky px-3 py-2 text-sm font-medium text-lm-dark-teal hover:bg-lm-aqua/15"
           >
             {isAdmin ? "Gestionar bonos" : "Ver bonos"}
+          </Link>
+          <Link
+            href={`/employees/${employee.id}/adjustments`}
+            className="ml-3 inline-flex rounded-md border border-lm-aqua/30 bg-lm-sky px-3 py-2 text-sm font-medium text-lm-dark-teal hover:bg-lm-aqua/15"
+          >
+            {isAdmin ? "Incentivos y descuentos" : "Ver incentivos y descuentos"}
           </Link>
         </Card>
 

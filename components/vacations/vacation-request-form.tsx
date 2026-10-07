@@ -41,7 +41,9 @@ export function VacationRequestForm({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(
     canCreateForOthers ? employees[0]?.id ?? "" : currentEmployeeId ?? ""
   );
+  const [kind, setKind] = useState<"vacation" | "permission">("vacation");
   const [startDate, setStartDate] = useState("");
+  const isPermission = kind === "permission";
 
   const availableDays = availableDaysByEmployee[selectedEmployeeId] ?? 0;
 
@@ -75,7 +77,19 @@ export function VacationRequestForm({
         </div>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-6">
+        <div>
+          <label className="mb-1 block text-sm text-zinc-700">Tipo</label>
+          <select
+            name="request_kind"
+            value={kind}
+            onChange={(event) => setKind(event.target.value === "permission" ? "permission" : "vacation")}
+            className="h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm"
+          >
+            <option value="vacation">Vacaciones</option>
+            <option value="permission">Permiso</option>
+          </select>
+        </div>
         <div>
           <label className="mb-1 block text-sm text-zinc-700">Empleado</label>
           {canCreateForOthers ? (
@@ -103,10 +117,12 @@ export function VacationRequestForm({
             </>
           )}
           <p className="mt-1 text-xs text-zinc-500">
-            Dias disponibles:{" "}
-            <span className="font-semibold text-emerald-700">
-              {availableDays}
-            </span>
+            {isPermission ? "El permiso no descuenta días de vacaciones." : (
+              <>
+                Dias disponibles:{" "}
+                <span className="font-semibold text-emerald-700">{availableDays}</span>
+              </>
+            )}
           </p>
         </div>
         <div>
@@ -129,30 +145,30 @@ export function VacationRequestForm({
             type="date"
             required
             min={endDateMin || undefined}
-            max={endDateMax || undefined}
+            max={isPermission ? undefined : endDateMax || undefined}
             disabled={!startDate}
           />
-          {startDate && availableDays > 0 ? (
+          {startDate && !isPermission && availableDays > 0 ? (
             <p className="mt-1 text-xs text-zinc-500">
               Max: {endDateMax} ({availableDays} dias)
             </p>
           ) : null}
-          {availableDays <= 0 ? (
+          {!isPermission && availableDays <= 0 ? (
             <p className="mt-1 text-xs text-red-600">
               Sin dias disponibles.
             </p>
           ) : null}
         </div>
         <div className="md:col-span-2">
-          <label className="mb-1 block text-sm text-zinc-700">Motivo</label>
-          <Input name="reason" placeholder="Viaje, descanso, etc." />
+          <label className="mb-1 block text-sm text-zinc-700">{isPermission ? "Tema del permiso" : "Motivo"}</label>
+          <Input name="reason" required={isPermission} placeholder={isPermission ? "El motivo concreto" : "Viaje, descanso, etc."} />
         </div>
       </div>
 
       <ConfirmSubmitButton
         type="submit"
-        confirmMessage="Confirma que deseas registrar esta solicitud de vacaciones."
-        disabled={availableDays <= 0}
+        confirmMessage={isPermission ? "Confirma que deseas registrar este permiso." : "Confirma que deseas registrar esta solicitud de vacaciones."}
+        disabled={!isPermission && availableDays <= 0}
       >
         Guardar solicitud
       </ConfirmSubmitButton>

@@ -1,4 +1,4 @@
-import { normalizeOptionalPayrollCurrencyCode, normalizePayrollCurrencyCode } from "@/lib/countries";
+import { normalizePayrollCurrencyCode } from "@/lib/countries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -168,6 +168,10 @@ export async function getCurrentEmployee(): Promise<
     | "residence_country"
     | "employee_type"
     | "hourly_hours_source"
+    | "employment_status"
+    | "current_salary_amount"
+    | "current_salary_currency"
+    | "hire_date"
   > | null
 > {
   if (!isSupabaseConfigured()) {
@@ -185,7 +189,7 @@ export async function getCurrentEmployee(): Promise<
   const { data, error } = await adminSupabase
     .from("employees")
     .select(
-      "id,full_name,email,manager_id,department,job_title,vacation_days_per_year,residence_country,employee_type,hourly_hours_source"
+      "id,full_name,email,manager_id,department,job_title,vacation_days_per_year,residence_country,employee_type,hourly_hours_source,employment_status,current_salary_amount,current_salary_currency,hire_date"
     )
     .eq("email", user.email.toLowerCase())
     .maybeSingle();
@@ -447,6 +451,22 @@ async function listEmployeeHistory<T extends { employee_id: string; effective_da
 
   if (error) throw new Error(`${errorPrefix}: ${error.message}`);
   return (data ?? []) as T[];
+}
+
+export async function getMySalaryHistory(): Promise<SalaryHistory[]> {
+  const me = await getCurrentEmployee();
+  if (!me) return [];
+  if (!isSupabaseConfigured()) return getSalaryHistory(me.id);
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("salary_history")
+    .select("*")
+    .eq("employee_id", me.id)
+    .order("effective_date", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`Error loading salary history: ${error.message}`);
+  return data ?? [];
 }
 
 export function getSalaryHistory(employeeId: string) {
@@ -904,7 +924,8 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
   const swift_bic = optStr(input, "swift_bic");
   const bank_route_number = optStr(input, "bank_route_number");
   const paypal_email = optStr(input, "paypal_email");
-  const invoice_currency = normalizeOptionalPayrollCurrencyCode(input.invoice_currency);
+  const current_salary_currency = normalizePayrollCurrencyCode(input.current_salary_currency);
+  const invoice_currency = current_salary_currency;
   const wise_account = optStr(input, "wise_account");
 
   const employee_type =
@@ -939,7 +960,6 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
   const vacation_days_per_year = Number(input.vacation_days_per_year || 30);
   const notes = input.notes ? String(input.notes).trim() : null;
   const current_salary_amount = Number(input.current_salary_amount || 0);
-  const current_salary_currency = normalizePayrollCurrencyCode(input.current_salary_currency);
   const current_salary_effective_date = input.current_salary_effective_date
     ? String(input.current_salary_effective_date)
     : null;

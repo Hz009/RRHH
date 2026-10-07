@@ -114,26 +114,26 @@ async function saveHistoryAction(
   redirect(`/employees/${employeeId}/${kind}?saved=${saved}`);
 }
 
-export function addSalaryRecordAction(formData: FormData) {
+export async function addSalaryRecordAction(formData: FormData) {
   return saveHistoryAction(formData, "salary", "create", "salary", addSalaryRecord);
 }
 
-export function updateSalaryRecordAction(formData: FormData) {
+export async function updateSalaryRecordAction(formData: FormData) {
   return saveHistoryAction(formData, "salary", "update", "salary_update", updateSalaryRecord);
 }
 
-export function deleteSalaryRecordAction(formData: FormData) {
+export async function deleteSalaryRecordAction(formData: FormData) {
   return saveHistoryAction(formData, "salary", "delete", "salary_delete", deleteSalaryRecord);
 }
 
-export function addJobDepartmentRecordAction(formData: FormData) {
+export async function addJobDepartmentRecordAction(formData: FormData) {
   return saveHistoryAction(formData, "job", "create", "job", addJobDepartmentRecord);
 }
 
-export function updateJobDepartmentRecordAction(formData: FormData) {
+export async function updateJobDepartmentRecordAction(formData: FormData) {
   return saveHistoryAction(formData, "job", "update", "job_update", updateJobDepartmentRecord);
 }
 
-export function deleteJobDepartmentRecordAction(formData: FormData) {
+export async function deleteJobDepartmentRecordAction(formData: FormData) {
   return saveHistoryAction(formData, "job", "delete", "job_delete", deleteJobDepartmentRecord);
 }

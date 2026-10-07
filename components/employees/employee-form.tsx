@@ -73,14 +73,6 @@ export function EmployeeForm({
     () => matchPayrollSelectValue(employee?.current_salary_currency, salaryCurrencyOptions, "USD"),
     [employee?.current_salary_currency, salaryCurrencyOptions]
   );
-  const invoiceCurrencyOptions = useMemo(
-    () => payrollCurrencySelectOptions(employee?.invoice_currency),
-    [employee?.invoice_currency]
-  );
-  const invoiceCurrencyDefault = useMemo(
-    () => matchPayrollSelectValue(employee?.invoice_currency, invoiceCurrencyOptions, ""),
-    [employee?.invoice_currency, invoiceCurrencyOptions]
-  );
 
   const defaultFirstName = employee?.first_name ?? employee?.full_name?.split(" ")[0] ?? "";
   const defaultLastName =
@@ -283,9 +275,9 @@ export function EmployeeForm({
           defaultValue={employee?.employment_status ?? "active"}
           className={selectNeutral}
         >
-          <option value="active">active</option>
-          <option value="on_leave">on_leave</option>
-          <option value="inactive">inactive</option>
+          <option value="active">Activo</option>
+          <option value="on_leave">De baja</option>
+          <option value="inactive">Inactivo</option>
         </select>
       </div>
       <div>
@@ -299,7 +291,7 @@ export function EmployeeForm({
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Moneda (nomina)</label>
+        <label className="mb-1 block text-sm text-zinc-700">Moneda (sueldo, factura y bonos)</label>
         <select
           name="current_salary_currency"
           required
@@ -325,6 +317,7 @@ export function EmployeeForm({
       </div>
       <div>
         <label className="mb-1 block text-sm text-zinc-700">Dias de vacaciones al ano</label>
+        <p className="mb-1 text-xs text-zinc-500">Por defecto 30. Se puede cambiar, por ejemplo a 15 o 20.</p>
         <Input
           name="vacation_days_per_year"
           type="number"
@@ -392,21 +385,6 @@ export function EmployeeForm({
           <option value="bank">Banco</option>
           <option value="paypal">PayPal</option>
           <option value="wise">Wise</option>
-        </select>
-      </div>
-      <div>
-        <label className={labelClass}>Moneda (para facturas)</label>
-        <select
-          name="invoice_currency"
-          defaultValue={invoiceCurrencyDefault}
-          className={selectTeal}
-        >
-          <option value="">Sin especificar</option>
-          {invoiceCurrencyOptions.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
         </select>
       </div>
       <div>

@@ -34,7 +34,7 @@ export function LoanForm({ action, employees }: LoanFormProps) {
         <Input name="currency" defaultValue="USD" required />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Numero de cuotas</label>
+        <label className="mb-1 block text-sm text-zinc-700">Meses en los que se compromete a pagar</label>
         <Input name="installments_total" type="number" min="1" required />
       </div>
       <div>
@@ -42,7 +42,7 @@ export function LoanForm({ action, employees }: LoanFormProps) {
         <Input name="installment_amount" type="number" step="0.01" min="0" required />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Fecha inicio</label>
+        <label className="mb-1 block text-sm text-zinc-700">Fecha en la que empieza a pagar</label>
         <Input name="start_date" type="date" required />
       </div>
       <div>

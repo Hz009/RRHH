@@ -10,7 +10,7 @@ import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { matchPayrollSelectValue, payrollCurrencySelectOptions } from "@/lib/countries";
 import { formatCurrency, formatDate, formatDateOnlyLocal, toDateInputValue } from "@/lib/utils";
-import { getMonthlyBonusesForEmployee, getPaidPeriodMonthsForEmployee } from "@/services/bonuses.service";
+import { getMonthlyBonusesForEmployee } from "@/services/bonuses.service";
 import { getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
 
 interface BonusesPageProps {
@@ -47,11 +47,7 @@ export default async function EmployeeBonusesPage({ params, searchParams }: Bonu
   }
 
   const bonuses = await getMonthlyBonusesForEmployee(params.id);
-
   const isAdmin = role === "admin";
-
-  const uniquePeriods = [...new Set(bonuses.map((b) => String(b.period_month).slice(0, 7)))];
-  const paidPeriods = await getPaidPeriodMonthsForEmployee(params.id, uniquePeriods);
 
   const bonusCurrencySelectClass =
     "h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm disabled:opacity-60";
@@ -142,7 +138,6 @@ export default async function EmployeeBonusesPage({ params, searchParams }: Bonu
             <div className="space-y-4">
               {bonuses.map((b) => {
                 const ym = String(b.period_month).slice(0, 7);
-                const locked = paidPeriods.has(ym);
                 const editCurrencyOptions = payrollCurrencySelectOptions(b.currency);
                 const editCurrencyDefault = matchPayrollSelectValue(b.currency, editCurrencyOptions, "USD");
                 return (
@@ -153,17 +148,13 @@ export default async function EmployeeBonusesPage({ params, searchParams }: Bonu
                         <span className="text-zinc-500"> · nomina {ym}</span>
                         <span className="ml-2 font-medium text-lm-dark-teal">{formatCurrency(b.amount, b.currency)}</span>
                       </div>
-                      {locked ? (
-                        <Badge variant="default">Mes pagado (bloqueado)</Badge>
-                      ) : (
-                        <Badge variant="warning">Editable</Badge>
-                      )}
+                      <Badge variant="warning">Editable hasta que el pago del mes lo cubra</Badge>
                     </div>
                     <p className="text-sm text-zinc-700">
                       <span className="font-medium text-zinc-600">Concepto:</span> {b.concept}
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">Registrado: {formatDate(b.created_at)}</p>
-                    {isAdmin && !locked ? (
+                    {isAdmin ? (
                       <div className="mt-4 space-y-3 border-t border-zinc-100 pt-4">
                         <form action={updateMonthlyBonusAction} className="grid gap-2 md:grid-cols-2 lg:grid-cols-6">
                           <input type="hidden" name="id" value={b.id} />

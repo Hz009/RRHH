@@ -2,6 +2,7 @@ import { periodMonthUtcRange, sumWorkedHoursFromPunchEvents } from "@/lib/attend
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getCurrentEmployee, getCurrentUserRole, getEmployees } from "@/services/employees.service";
+import { payrollExtrasForMonth, payrollNetsForEmployee } from "@/services/payslip.service";
 
 export interface PaymentPreviewRow {
   employeeId: string;
@@ -14,9 +15,13 @@ export interface PaymentPreviewRow {
   bonusTotal: number;
   monthHours: number;
   amountToPay: number;
+  amountDue: number;
   currency: string;
   alreadyRegistered: boolean;
   paymentRecordId: string | null;
+  employmentStatus: string;
+  currencyMismatch: boolean;
+  hourlyHoursSource: "punch" | "manual_monthly" | null;
 }
 
 export interface PaymentHistoryRow {
@@ -241,6 +246,16 @@ export async function upsertMonthlyHours(input: Record<string, unknown>) {
   }
 
   const adminSupabase = createSupabaseAdminClient();
+  const { data: employee, error: employeeError } = await adminSupabase
+    .from("employees")
+    .select("employee_type,hourly_hours_source")
+    .eq("id", employeeId)
+    .maybeSingle();
+  if (employeeError) throw new Error(`Error cargando empleado: ${employeeError.message}`);
+  if (employee?.employee_type === "hourly" && (employee.hourly_hours_source ?? "manual_monthly") === "punch") {
+    throw new Error("Este empleado ficha entrada y salida. Las horas del pago salen de esos fichajes.");
+  }
+
   const periodDate = toPeriodDate(periodMonth);
 
   const { error } = await adminSupabase.from("employee_monthly_hours").upsert(
@@ -264,7 +279,7 @@ export async function getPaymentPreview(periodMonth: string): Promise<PaymentPre
   if (!isSupabaseConfigured()) return [];
 
   const adminSupabase = createSupabaseAdminClient();
-  const employees = await getEmployees({ status: "active" });
+  const employees = await getEmployees();
   const hoursMap = await getMonthlyHoursMap(periodMonth);
   const periodDate = toPeriodDate(periodMonth);
   const periodEnd = new Date(`${periodDate}T12:00:00`);
@@ -315,6 +330,21 @@ export async function getPaymentPreview(periodMonth: string): Promise<PaymentPre
     (existingPayments ?? []).map((row) => [row.employee_id, row])
   );
 
+  const currencyByEmployee = new Map<string, string>();
+  for (const employee of eligibleEmployees) {
+    const term = compensationByEmployee[employee.id];
+    const paymentRecord = paymentMap.get(employee.id) ?? null;
+    currencyByEmployee.set(
+      employee.id,
+      paymentRecord?.id
+        ? paymentRecord.currency ?? "USD"
+        : term?.currency ?? employee.current_salary_currency ?? "USD"
+    );
+  }
+  const extras = employeeIds.length
+    ? await payrollExtrasForMonth(employeeIds, periodMonth, currencyByEmployee)
+    : new Map<string, { incentive: number; discount: number; loan: number }>();
+
   const bonusesByEmployee = new Map<string, Array<{ amount: number; currency: string }>>();
   for (const row of bonusRows ?? []) {
     const list = bonusesByEmployee.get(row.employee_id) ?? [];
@@ -337,34 +367,45 @@ export async function getPaymentPreview(periodMonth: string): Promise<PaymentPre
     const bonusTotal = bonusList
       .filter((b) => b.currency === currency)
       .reduce((sum, b) => sum + b.amount, 0);
-    const amountToPayPending = basePay + bonusTotal;
+    const extra = extras.get(employee.id) ?? { incentive: 0, discount: 0, loan: 0 };
+    const amountDue = basePay + bonusTotal + extra.incentive - extra.discount - extra.loan;
+    const paidSoFar = Number(paymentRecord?.amount_paid ?? 0);
+    const pending = Math.max(amountDue - paidSoFar, 0);
+    const fullyPaid = isRegistered && pending < 0.005;
+    const currencies = [
+      term?.currency ?? employee.current_salary_currency,
+      employee.invoice_currency,
+      ...bonusList.map((b) => b.currency),
+    ]
+      .filter((value): value is string => Boolean(value))
+      .map((value) => value.toUpperCase());
+    const currencyMismatch = new Set(currencies).size > 1;
 
     return {
       employeeId: employee.id,
       employeeCode: employee.employee_code,
       fullName: employee.full_name,
-      employeeType: isRegistered
+      employeeType: fullyPaid
         ? paymentRecord?.employee_type ?? employeeType
         : employeeType,
-      paymentMethod: isRegistered
+      paymentMethod: fullyPaid
         ? paymentRecord?.payment_method ?? "bank"
         : term?.payment_method ?? employee.payment_method ?? "bank",
-      paymentAccount: isRegistered
+      paymentAccount: fullyPaid
         ? paymentRecord?.payment_account ?? null
         : term?.payment_account ?? employee.payment_account,
-      baseAmount: isRegistered
-        ? Number(paymentRecord?.base_amount ?? 0)
-        : baseAmount,
+      baseAmount: fullyPaid ? Number(paymentRecord?.base_amount ?? 0) : baseAmount,
       bonusTotal,
-      monthHours: isRegistered
-        ? Number(paymentRecord?.hours_worked ?? 0)
-        : monthHours,
-      amountToPay: isRegistered
-        ? Number(paymentRecord?.amount_paid ?? 0)
-        : amountToPayPending,
+      monthHours: fullyPaid ? Number(paymentRecord?.hours_worked ?? 0) : monthHours,
+      amountDue,
+      amountToPay: fullyPaid ? paidSoFar : pending,
       currency,
-      alreadyRegistered: isRegistered,
+      alreadyRegistered: fullyPaid,
       paymentRecordId: paymentRecord?.id ?? null,
+      employmentStatus: employee.employment_status,
+      currencyMismatch,
+      hourlyHoursSource:
+        employeeType === "hourly" ? employee.hourly_hours_source ?? "manual_monthly" : null,
     };
   });
 }
@@ -452,7 +493,7 @@ export async function registerMonthlyPayments(periodMonth: string, selectedEmplo
   const payload = selectedRows.map((row) => ({
     employee_id: row.employeeId,
     period_month: periodDate,
-    amount_paid: row.amountToPay,
+    amount_paid: row.amountDue,
     currency: row.currency,
     payment_method: row.paymentMethod,
     payment_account: row.paymentAccount,
@@ -551,6 +592,103 @@ export async function getMyPaymentHistoryDetailed(): Promise<MyPaymentHistoryRow
       bonusLines: lines,
       salaryPortion,
       bonusTotalInPayCurrency,
+    };
+  });
+}
+
+export interface MyPayrollMonth {
+  periodMonth: string;
+  currency: string;
+  amountDue: number;
+  amountPaid: number;
+  pending: number;
+  paid: boolean;
+}
+
+export async function getMyPayrollOverview(): Promise<MyPayrollMonth[]> {
+  const me = await getCurrentEmployee();
+  if (!me || !isSupabaseConfigured()) return [];
+
+  const admin = createSupabaseAdminClient();
+  const now = new Date();
+  const months = Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - index, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  const usesPunch = me.employee_type === "hourly" && (me.hourly_hours_source ?? "manual_monthly") === "punch";
+  const oldest = months[months.length - 1] ?? months[0];
+  const newest = months[0];
+  const punchRange = usesPunch
+    ? {
+        startIso: periodMonthUtcRange(`${oldest}-01`).startIso,
+        endIso: periodMonthUtcRange(`${newest}-01`).endIso,
+      }
+    : null;
+
+  const [{ data: payments }, { data: bonuses }, { data: hours }, punchResult] = await Promise.all([
+    admin.from("employee_payments").select("period_month,amount_paid,currency").eq("employee_id", me.id),
+    admin.from("employee_monthly_bonuses").select("period_month,amount,currency").eq("employee_id", me.id),
+    usesPunch
+      ? Promise.resolve({ data: [] as { period_month: string; hours_worked: number }[] })
+      : admin.from("employee_monthly_hours").select("period_month,hours_worked").eq("employee_id", me.id),
+    punchRange
+      ? admin
+          .from("attendance_records")
+          .select("event_type,occurred_at")
+          .eq("employee_id", me.id)
+          .in("event_type", ["clock_in", "clock_out"])
+          .gte("occurred_at", punchRange.startIso)
+          .lte("occurred_at", punchRange.endIso)
+          .order("occurred_at", { ascending: true })
+      : Promise.resolve({ data: [] as { event_type: string; occurred_at: string }[] }),
+  ]);
+
+  const paidByMonth = new Map(
+    (payments ?? []).map((row) => [String(row.period_month).slice(0, 7), Number(row.amount_paid ?? 0)])
+  );
+  const hoursByMonth = new Map(
+    (hours ?? []).map((row) => [String(row.period_month).slice(0, 7), Number(row.hours_worked ?? 0)])
+  );
+  if (usesPunch) {
+    const events = punchResult.data ?? [];
+    for (const periodMonth of months) {
+      const { startIso, endIso } = periodMonthUtcRange(`${periodMonth}-01`);
+      const inMonth = events.filter((event) => event.occurred_at >= startIso && event.occurred_at <= endIso);
+      hoursByMonth.set(periodMonth, sumWorkedHoursFromPunchEvents(inMonth));
+    }
+  }
+  const currency = me.current_salary_currency || "USD";
+  const rate = Number(me.current_salary_amount ?? 0);
+
+  const drafts = months.flatMap((periodMonth) => {
+    const periodEnd = `${periodMonth}-31`;
+    if (me.hire_date && me.hire_date > periodEnd) return [];
+    const bonusTotal = (bonuses ?? [])
+      .filter(
+        (row) =>
+          String(row.period_month).slice(0, 7) === periodMonth &&
+          String(row.currency ?? currency).toUpperCase() === currency.toUpperCase()
+      )
+      .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+    const base = me.employee_type === "hourly" ? rate * (hoursByMonth.get(periodMonth) ?? 0) : rate;
+    const amountPaid = paidByMonth.get(periodMonth) ?? 0;
+    return [{ periodMonth, currency, amountPaid, income: base + bonusTotal }];
+  });
+  const nets = await payrollNetsForEmployee(
+    me.id,
+    drafts.map((row) => ({ periodMonth: row.periodMonth, currency: row.currency, income: row.income }))
+  );
+  return drafts.map((row, index) => {
+    const amountDue = nets[index] ?? row.income;
+    const pending = Math.max(amountDue - row.amountPaid, 0);
+    return {
+      periodMonth: row.periodMonth,
+      currency: row.currency,
+      amountDue,
+      amountPaid: row.amountPaid,
+      pending,
+      paid: row.amountPaid > 0 && pending < 0.005,
     };
   });
 }
@@ -690,21 +828,24 @@ export function buildPaymentsTxt(
   const lines: string[] = [];
   lines.push(`PAYROLL_EXPORT|MONTH=${periodMonth}|GENERATED_AT=${new Date().toISOString()}`);
   lines.push(
-    "employee_code|employee_name|employee_type|payment_method|payment_account|base_amount|bonus_total|month_hours|amount_to_pay|currency"
+    "employee_code|employee_name|employment_status|employee_type|payment_method|payment_account|base_amount|bonus_total|month_hours|amount_due|amount_pending|currency|currency_check"
   );
   for (const row of rows) {
     lines.push(
       [
         row.employeeCode,
         row.fullName,
+        row.employmentStatus,
         row.employeeType,
         row.paymentMethod,
         row.paymentAccount ?? "",
         row.baseAmount.toFixed(2),
         row.bonusTotal.toFixed(2),
         row.monthHours.toFixed(2),
+        row.amountDue.toFixed(2),
         row.amountToPay.toFixed(2),
         row.currency,
+        row.currencyMismatch ? "REVISAR" : "OK",
       ].join("|")
     );
   }
