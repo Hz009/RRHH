@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { withReadOnlyData } from "@/lib/supabase/read-only";
+
 export function createSupabaseAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -10,7 +12,9 @@ export function createSupabaseAdminClient() {
     );
   }
 
-  return createClient(url, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  return withReadOnlyData(
+    createClient(url, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+  );
 }

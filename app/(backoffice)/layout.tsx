@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { Sidebar } from "@/components/layout/sidebar";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isDataReadOnly } from "@/lib/supabase/read-only";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function BackofficeLayout({ children }: { children: React.ReactNode }) {
   let role: "admin" | "manager" | "employee" = "admin";
@@ -17,7 +18,7 @@ export default async function BackofficeLayout({ children }: { children: React.R
       redirect("/login");
     }
 
-    if (user.user_metadata?.must_change_password) {
+    if (user.user_metadata?.must_change_password && !isDataReadOnly()) {
       redirect("/change-password");
     }
 
@@ -30,9 +31,16 @@ export default async function BackofficeLayout({ children }: { children: React.R
   }
 
   return (
-    <div className="flex min-h-screen bg-[radial-gradient(circle_at_top,_#ffffff_0%,_#f5fbfb_45%,_#edf7f7_100%)]">
-      <Sidebar role={role} />
-      <main className="w-full">{children}</main>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#ffffff_0%,_#f5fbfb_45%,_#edf7f7_100%)]">
+      {isDataReadOnly() ? (
+        <p className="border-b border-lm-aqua/30 bg-lm-sky px-6 py-2 text-sm text-lm-dark-teal">
+          Solo lectura. Los datos se consultan aquí y solo se modifican en el portal principal.
+        </p>
+      ) : null}
+      <div className="flex min-h-screen">
+        <Sidebar role={role} />
+        <main className="w-full">{children}</main>
+      </div>
     </div>
   );
 }

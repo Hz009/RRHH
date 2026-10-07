@@ -1,10 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { withReadOnlyData } from "@/lib/supabase/read-only";
+
 export function createSupabaseServerClient() {
   const cookieStore = cookies();
 
-  return createServerClient(
+  return withReadOnlyData(createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
     {
@@ -28,5 +30,5 @@ export function createSupabaseServerClient() {
         },
       },
     }
-  );
+  ));
 }
