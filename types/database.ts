@@ -41,6 +41,9 @@ export interface Database {
           last_name: string | null;
           email: string;
           phone: string | null;
+          phone_prefix: string | null;
+          whatsapp_prefix: string | null;
+          whatsapp_number: string | null;
           nationality: string | null;
           residence_country: string | null;
           legal_name_bank: string | null;
@@ -51,13 +54,14 @@ export interface Database {
           address_postal_code: string | null;
           bank_name: string | null;
           bank_account_number: string | null;
+          bank_account_type: "savings" | "checking" | null;
           swift_bic: string | null;
           bank_route_number: string | null;
           paypal_email: string | null;
           invoice_currency: string | null;
           employee_type: EmployeeType;
           hourly_hours_source: HourlyHoursSource | null;
-          payment_method: PaymentMethod;
+          payment_method: PaymentMethod | null;
           payment_account: string | null;
           department: string;
           job_title: string;
@@ -110,7 +114,7 @@ export interface Database {
           employee_id: string;
           effective_date: string;
           employee_type: EmployeeType;
-          payment_method: PaymentMethod;
+          payment_method: PaymentMethod | null;
           payment_account: string | null;
           amount: number;
           currency: string;

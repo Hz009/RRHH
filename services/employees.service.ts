@@ -233,6 +233,22 @@ export async function getManagerOptions(): Promise<Array<Pick<Employee, "id" | "
   return (employees ?? []).filter((employee) => managerEmails.has(String(employee.email).toLowerCase()));
 }
 
+export async function listAssignableManagers(): Promise<Array<Pick<Employee, "id" | "full_name" | "email">>> {
+  const role = await getCurrentUserRole();
+  if (role !== "admin" && role !== "manager") return [];
+  if (!isSupabaseConfigured()) return getManagerOptions();
+
+  const admin = createSupabaseAdminClient();
+  const [{ data: profiles, error: profilesError }, { data: employees, error: employeesError }] = await Promise.all([
+    admin.from("profiles").select("email").eq("role", "manager"),
+    admin.from("employees").select("id,full_name,email").order("full_name", { ascending: true }),
+  ]);
+  if (profilesError) throw new Error(profilesError.message);
+  if (employeesError) throw new Error(employeesError.message);
+  const managerEmails = new Set((profiles ?? []).map((profile) => String(profile.email).toLowerCase()));
+  return (employees ?? []).filter((employee) => managerEmails.has(String(employee.email).toLowerCase()));
+}
+
 export async function getProfileRoleByEmail(email: string): Promise<"admin" | "manager" | "employee"> {
   if (!isSupabaseConfigured()) return "employee";
 
@@ -246,6 +262,7 @@ export async function getProfileRoleByEmail(email: string): Promise<"admin" | "m
 
 export async function createEmployee(input: Record<string, unknown>) {
   const parsedPayload = parseEmployeeInput(input, { includeEmployeeCode: false });
+  if (!("hire_date" in parsedPayload)) throw new Error("Faltan datos laborales.");
   const payload = {
     ...parsedPayload,
     current_salary_effective_date:
@@ -325,6 +342,7 @@ export async function createEmployee(input: Record<string, unknown>) {
 
 export async function updateEmployee(id: string, input: Record<string, unknown>) {
   const payload = parseEmployeeInput(input, { includeEmployeeCode: false });
+  if (!("hire_date" in payload)) throw new Error("Faltan datos laborales.");
   if (
     payload.current_salary_effective_date &&
     payload.current_salary_effective_date < payload.hire_date
@@ -904,13 +922,16 @@ function filterEmployees(employees: Employee[], filters: EmployeeFilters) {
   });
 }
 
-function parseEmployeeInput(input: Record<string, unknown>, options: { includeEmployeeCode: boolean }) {
+function parseEmployeeInput(input: Record<string, unknown>, options: { includeEmployeeCode: boolean; contactOnly?: boolean }) {
   const employee_code = String(input.employee_code || "").trim();
   const first_name = String(input.first_name || "").trim();
   const last_name = String(input.last_name || "").trim();
   const full_name = `${first_name} ${last_name}`.trim();
   const email = String(input.email || "").trim().toLowerCase();
   const phone = input.phone ? String(input.phone).trim() : null;
+  const phone_prefix = optStr(input, "phone_prefix");
+  const whatsapp_number = optStr(input, "whatsapp_number");
+  const whatsapp_prefix = optStr(input, "whatsapp_prefix");
   const nationality = optStr(input, "nationality");
   const residence_country = optStr(input, "residence_country");
   const legal_name_bank = optStr(input, "legal_name_bank");
@@ -921,6 +942,8 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
   const address_postal_code = optStr(input, "address_postal_code");
   const bank_name = optStr(input, "bank_name");
   const bank_account_number = optStr(input, "bank_account_number");
+  const bankAccountRaw = String(input.bank_account_type ?? "").trim();
+  const bank_account_type = bankAccountRaw === "savings" || bankAccountRaw === "checking" ? bankAccountRaw : null;
   const swift_bic = optStr(input, "swift_bic");
   const bank_route_number = optStr(input, "bank_route_number");
   const paypal_email = optStr(input, "paypal_email");
@@ -940,17 +963,17 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
         ? "punch"
         : "manual_monthly"
       : null;
-  const payment_method =
-    String(input.payment_method || "bank") === "paypal"
-      ? "paypal"
-      : String(input.payment_method || "bank") === "wise"
-        ? "wise"
-        : "bank";
+  const paymentRaw = String(input.payment_method ?? "").trim();
+  const payment_method = paymentRaw === "paypal" || paymentRaw === "wise" || paymentRaw === "bank" ? paymentRaw : null;
 
   let payment_account: string | null = null;
   if (payment_method === "paypal") payment_account = paypal_email;
   else if (payment_method === "bank") payment_account = bank_account_number;
-  else payment_account = wise_account;
+  else if (payment_method === "wise") payment_account = wise_account;
+
+  if ((phone && !phone_prefix) || (whatsapp_number && !whatsapp_prefix)) {
+    throw new Error("Si escribes un teléfono o un WhatsApp, elige también el prefijo.");
+  }
 
   const department = String(input.department || "").trim();
   const job_title = String(input.job_title || "").trim();
@@ -964,8 +987,31 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
     ? String(input.current_salary_effective_date)
     : null;
 
-  if (!first_name || !last_name || !email || !department || !job_title || !hire_date) {
+  if (options.contactOnly) {
+    if (!first_name || !last_name || !email) {
+      throw new Error("Nombre, apellido y email son obligatorios.");
+    }
+  } else if (!first_name || !last_name || !email || !department || !job_title || !hire_date) {
     throw new Error("Missing required employee fields");
+  }
+
+  if (options.contactOnly) {
+    const missing: string[] = [];
+    if (!legal_name_bank) missing.push("nombre del titular");
+    if (!identity_document) missing.push("documento de identidad");
+    if (!address_line) missing.push("dirección");
+    if (!address_country) missing.push("país");
+    if (!address_city) missing.push("ciudad");
+    if (!address_postal_code) missing.push("código postal");
+    if (!payment_method) missing.push("opción de pago");
+    if (payment_method === "paypal" && !paypal_email) missing.push("correo PayPal");
+    if (payment_method === "wise" && !wise_account) missing.push("correo Wise");
+    if (payment_method === "bank" && !bank_account_type) missing.push("tipo de cuenta");
+    if (payment_method === "bank" && !bank_name) missing.push("nombre del banco");
+    if (payment_method === "bank" && !bank_account_number) missing.push("cuenta bancaria");
+    if (missing.length > 0) {
+      throw new Error(`Completa estos datos: ${missing.join(", ")}.`);
+    }
   }
 
   const payload = {
@@ -974,6 +1020,9 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
     last_name,
     email,
     phone,
+    phone_prefix,
+    whatsapp_prefix,
+    whatsapp_number,
     nationality,
     residence_country,
     legal_name_bank,
@@ -984,6 +1033,7 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
     address_postal_code,
     bank_name,
     bank_account_number,
+    bank_account_type,
     swift_bic,
     bank_route_number,
     paypal_email,
@@ -1003,6 +1053,36 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
     current_salary_currency,
     current_salary_effective_date,
   };
+
+  if (options.contactOnly) {
+    return {
+      full_name,
+      first_name,
+      last_name,
+      email,
+      phone,
+      phone_prefix,
+      whatsapp_prefix,
+      whatsapp_number,
+      nationality,
+      residence_country,
+      legal_name_bank,
+      identity_document,
+      address_line,
+      address_country,
+      address_city,
+      address_postal_code,
+      bank_name,
+      bank_account_number,
+      bank_account_type,
+      swift_bic,
+      bank_route_number,
+      paypal_email,
+      payment_method,
+      payment_account,
+      notes,
+    };
+  }
 
   if (options.includeEmployeeCode && employee_code) {
     return { employee_code, ...payload };
@@ -1067,6 +1147,75 @@ export async function resetEmployeePassword(employeeId: string, newPassword: str
   if (updErr) throw new Error(updErr.message);
 }
 
+export async function updateOwnEmployeeContact(input: Record<string, unknown>) {
+  const contact = parseEmployeeInput(input, { includeEmployeeCode: false, contactOnly: true });
+  if (!isSupabaseConfigured()) return contact;
+
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) throw new Error("Debes iniciar sesión.");
+
+  const admin = createSupabaseAdminClient();
+  const { data: employee, error: loadError } = await admin
+    .from("employees")
+    .select("id,email")
+    .eq("email", user.email.toLowerCase())
+    .maybeSingle();
+  if (loadError) throw new Error(loadError.message);
+  if (!employee) throw new Error("No hay una ficha asociada a tu usuario.");
+
+  if (contact.email !== employee.email.toLowerCase()) {
+    const { data: taken } = await admin.from("employees").select("id").eq("email", contact.email).maybeSingle();
+    if (taken) throw new Error("Ya existe otra persona con ese email.");
+  }
+
+  const { error } = await admin.from("employees").update(contact).eq("id", employee.id);
+  if (error) throw new Error(error.message);
+
+  const { data: profile } = await admin.from("profiles").select("id,role").eq("email", employee.email.toLowerCase()).maybeSingle();
+  if (profile && profile.role !== "admin") {
+    const { error: profileError } = await admin
+      .from("profiles")
+      .update({ full_name: contact.full_name, email: contact.email })
+      .eq("id", profile.id);
+    if (profileError) throw new Error(profileError.message);
+  }
+
+  const { error: authError } = await admin.auth.admin.updateUserById(user.id, {
+    email: contact.email,
+    email_confirm: true,
+    user_metadata: { ...user.user_metadata, must_complete_profile: false },
+  });
+  if (authError) throw new Error(authError.message);
+
+  return { id: employee.id, ...contact };
+}
+
+export async function updateDirectReportManager(employeeId: string, managerId: string) {
+  if (!managerId) throw new Error("Elige un manager.");
+  if (!isSupabaseConfigured()) return;
+
+  const role = await getCurrentUserRole();
+  const me = await getCurrentEmployee();
+  if (role !== "manager" || !me) throw new Error("Solo un manager puede cambiar el manager de su equipo.");
+
+  const admin = createSupabaseAdminClient();
+  const { data: employee, error } = await admin
+    .from("employees")
+    .select("id,manager_id")
+    .eq("id", employeeId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!employee || employee.manager_id !== me.id) {
+    throw new Error("Solo puedes cambiar el manager de las personas de tu equipo.");
+  }
+
+  const { error: updateError } = await admin.from("employees").update({ manager_id: managerId }).eq("id", employeeId);
+  if (updateError) throw new Error(updateError.message);
+}
+
 async function requireAdminUser() {
   const supabase = createSupabaseServerClient();
   const {
@@ -1110,7 +1259,7 @@ async function createAuthUserForEmployee(
         email: email.toLowerCase(),
         password: "123456",
         email_confirm: true,
-        user_metadata: { must_change_password: true },
+        user_metadata: { must_change_password: true, must_complete_profile: true },
       });
 
     if (authError) {

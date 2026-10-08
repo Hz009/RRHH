@@ -6,6 +6,7 @@ import { useFormState } from "react-dom";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { getCountryOptionsEs, matchPayrollSelectValue, payrollCurrencySelectOptions } from "@/lib/countries";
+import { getPhonePrefixes } from "@/lib/phone-prefixes";
 import {
   LINGUAMEETING_DEPARTMENTS,
   LINGUAMEETING_JOB_TITLES,
@@ -37,6 +38,7 @@ interface EmployeeFormProps {
   defaultUserRole: "manager" | "employee";
   submitLabel: string;
   confirmMessage: string;
+  mode?: "admin" | "self";
 }
 
 export function EmployeeForm({
@@ -47,16 +49,19 @@ export function EmployeeForm({
   defaultUserRole,
   submitLabel,
   confirmMessage,
+  mode = "admin",
 }: EmployeeFormProps) {
   const [state, formAction] = useFormState(action, null);
   const [hireDate, setHireDate] = useState(employee?.hire_date ?? "");
   const [salaryEffectiveDate, setSalaryEffectiveDate] = useState(
     employee?.current_salary_effective_date ?? employee?.hire_date ?? ""
   );
-  const [paymentMethod, setPaymentMethod] = useState(employee?.payment_method ?? "bank");
+  const [paymentMethod, setPaymentMethod] = useState(employee?.payment_method ?? "");
+  const isSelf = mode === "self";
   const [employeeType, setEmployeeType] = useState(employee?.employee_type ?? "full_time");
 
   const countryOptions = useMemo(() => getCountryOptionsEs(), []);
+  const phonePrefixes = useMemo(() => getPhonePrefixes(), []);
   const departmentOptions = useMemo(
     () => selectOptionsFromCatalog(LINGUAMEETING_DEPARTMENTS, employee?.department),
     [employee?.department]
@@ -137,9 +142,34 @@ export function EmployeeForm({
         <Input name="email" type="email" required defaultValue={employee?.email} />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Telefono</label>
-        <Input name="phone" defaultValue={employee?.phone ?? ""} />
+        <label className="mb-1 block text-sm text-zinc-700">Teléfono</label>
+        <div className="flex gap-2">
+          <select name="phone_prefix" defaultValue={employee?.phone_prefix ?? ""} className={cn(selectNeutral, "w-40 shrink-0")}>
+            <option value="">Prefijo</option>
+            {phonePrefixes.map((prefix) => (
+              <option key={`${prefix.label}-${prefix.value}`} value={prefix.value}>
+                {prefix.label}
+              </option>
+            ))}
+          </select>
+          <Input name="phone" defaultValue={employee?.phone ?? ""} placeholder="Número" />
+        </div>
       </div>
+      <div>
+        <label className="mb-1 block text-sm text-zinc-700">WhatsApp</label>
+        <div className="flex gap-2">
+          <select name="whatsapp_prefix" defaultValue={employee?.whatsapp_prefix ?? ""} className={cn(selectNeutral, "w-40 shrink-0")}>
+            <option value="">Prefijo</option>
+            {phonePrefixes.map((prefix) => (
+              <option key={`wa-${prefix.label}-${prefix.value}`} value={prefix.value}>
+                {prefix.label}
+              </option>
+            ))}
+          </select>
+          <Input name="whatsapp_number" defaultValue={employee?.whatsapp_number ?? ""} placeholder="Número" />
+        </div>
+      </div>
+      {isSelf ? null : <>
       <div>
         <label className="mb-1 block text-sm text-zinc-700">Departamento</label>
         <select
@@ -177,16 +207,17 @@ export function EmployeeForm({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Tipo de usuario</label>
+        <label className="mb-1 block text-sm text-zinc-700">Tipo de empleado</label>
         <select
           name="user_role"
           defaultValue={defaultUserRole}
           className={selectNeutral}
         >
-          <option value="employee">employee</option>
-          <option value="manager">manager</option>
+          <option value="employee">Empleado</option>
+          <option value="manager">Manager</option>
         </select>
       </div>
+      </>}
       <div>
         <label className={labelClass}>Nacionalidad</label>
         <select name="nationality" defaultValue={employee?.nationality ?? ""} className={selectNeutral}>
@@ -213,8 +244,8 @@ export function EmployeeForm({
           ))}
         </select>
       </div>
-      <div>
-        <label className="mb-1 block text-sm text-zinc-700">Tipo de empleado</label>
+      {isSelf ? null : <div>
+        <label className="mb-1 block text-sm text-zinc-700">Tipo de usuario</label>
         <select
           name="employee_type"
           value={employeeType}
@@ -223,10 +254,10 @@ export function EmployeeForm({
         >
           <option value="full_time">Full time</option>
           <option value="part_time">Part time</option>
-          <option value="hourly">Pago por horas</option>
+          <option value="hourly">Hourly</option>
         </select>
-      </div>
-      {employeeType === "hourly" ? (
+      </div>}
+      {!isSelf && employeeType === "hourly" ? (
         <div className="md:col-span-2">
           <label className="mb-1 block text-sm font-medium text-lm-dark-teal">
             Como se registran las horas (solo por horas)
@@ -241,6 +272,7 @@ export function EmployeeForm({
           </select>
         </div>
       ) : null}
+      {isSelf ? null : <>
       <div>
         <label className="mb-1 block text-sm text-zinc-700">Manager asignado</label>
         <select name="manager_id" defaultValue={employee?.manager_id ?? ""} className={selectNeutral}>
@@ -316,7 +348,7 @@ export function EmployeeForm({
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Dias de vacaciones al ano</label>
+        <label className="mb-1 block text-sm text-zinc-700">Días de vacaciones</label>
         <p className="mb-1 text-xs text-zinc-500">Por defecto 30. Se puede cambiar, por ejemplo a 15 o 20.</p>
         <Input
           name="vacation_days_per_year"
@@ -325,6 +357,7 @@ export function EmployeeForm({
           defaultValue={employee?.vacation_days_per_year ?? 30}
         />
       </div>
+      </>}
 
       <SectionTitle>Titular y domicilio (como en banco o documento de identidad)</SectionTitle>
       <div className="md:col-span-2">
@@ -334,6 +367,7 @@ export function EmployeeForm({
         <Input
           name="legal_name_bank"
           placeholder="Nombre completo"
+          required={isSelf}
           defaultValue={employee?.legal_name_bank ?? ""}
         />
       </div>
@@ -342,16 +376,17 @@ export function EmployeeForm({
         <Input
           name="identity_document"
           placeholder="Documento nacional de identidad"
+          required={isSelf}
           defaultValue={employee?.identity_document ?? ""}
         />
       </div>
       <div>
         <label className={labelClass}>Direccion</label>
-        <Input name="address_line" placeholder="Direccion" defaultValue={employee?.address_line ?? ""} />
+        <Input name="address_line" placeholder="Dirección" required={isSelf} defaultValue={employee?.address_line ?? ""} />
       </div>
       <div>
         <label className={labelClass}>Pais</label>
-        <select name="address_country" defaultValue={employee?.address_country ?? ""} className={selectTeal}>
+        <select name="address_country" required={isSelf} defaultValue={employee?.address_country ?? ""} className={selectTeal}>
           <option value="">Pais</option>
           {countryOptions.map((c) => (
             <option key={c.value} value={c.value}>
@@ -362,62 +397,86 @@ export function EmployeeForm({
       </div>
       <div>
         <label className={labelClass}>Ciudad</label>
-        <Input name="address_city" placeholder="Ciudad" defaultValue={employee?.address_city ?? ""} />
+        <Input name="address_city" placeholder="Ciudad" required={isSelf} defaultValue={employee?.address_city ?? ""} />
       </div>
       <div>
         <label className={labelClass}>Codigo postal</label>
         <Input
           name="address_postal_code"
-          placeholder="Codigo postal"
+          placeholder="Código postal"
+          required={isSelf}
           defaultValue={employee?.address_postal_code ?? ""}
         />
       </div>
 
       <SectionTitle>Opciones de pago</SectionTitle>
       <div>
-        <label className={labelClass}>Opcion de pago</label>
+        <label className={labelClass}>Opción de pago</label>
         <select
           name="payment_method"
+          required={isSelf}
           value={paymentMethod}
-          onChange={(e) => setPaymentMethod(e.target.value as Employee["payment_method"])}
-          className={selectTeal}
+          onChange={(e) => setPaymentMethod(e.target.value)}
+          className={cn(selectTeal, !paymentMethod && "text-zinc-400")}
         >
-          <option value="bank">Banco</option>
+          <option value="" disabled>
+            Seleccionar opción
+          </option>
+          <option value="bank">Transferencia bancaria</option>
           <option value="paypal">PayPal</option>
           <option value="wise">Wise</option>
         </select>
       </div>
-      <div>
-        <label className={labelClass}>Correo PayPal</label>
-        <Input
-          name="paypal_email"
-          type="email"
-          placeholder="Correo PayPal"
-          defaultValue={defaultPaypal}
-        />
-      </div>
+      {paymentMethod === "paypal" ? (
+        <div>
+          <label className={labelClass}>Correo PayPal</label>
+          <Input
+            name="paypal_email"
+            type="email"
+            placeholder="Correo PayPal"
+            required={isSelf}
+            defaultValue={defaultPaypal}
+          />
+        </div>
+      ) : null}
 
       {paymentMethod === "wise" ? (
         <>
           <SectionTitle>Cuenta Wise</SectionTitle>
           <div className="md:col-span-2">
-            <label className={labelClass}>Identificador Wise</label>
-            <Input name="wise_account" placeholder="Cuenta o identificador Wise" defaultValue={defaultWise} />
+            <label className={labelClass}>Correo Wise</label>
+            <Input name="wise_account" type="email" required={isSelf} placeholder="Correo Wise" defaultValue={defaultWise} />
           </div>
         </>
       ) : null}
 
       {paymentMethod === "bank" ? (
         <>
-          <SectionTitle>Informacion bancaria</SectionTitle>
+          <SectionTitle>Información bancaria</SectionTitle>
+          <div>
+            <label className={labelClass}>Tipo de cuenta</label>
+            <select
+              name="bank_account_type"
+              required={isSelf}
+              defaultValue={employee?.bank_account_type ?? ""}
+              className={cn(selectTeal, !employee?.bank_account_type && "text-zinc-400")}
+            >
+              <option value="" disabled>
+                Seleccionar opción
+              </option>
+              <option value="savings">Cuenta de ahorros</option>
+              <option value="checking">Cuenta corriente</option>
+            </select>
+          </div>
           <div>
             <label className={labelClass}>Nombre del banco</label>
-            <Input name="bank_name" placeholder="Nombre del banco" defaultValue={employee?.bank_name ?? ""} />
+            <Input name="bank_name" required={isSelf} placeholder="Nombre del banco" defaultValue={employee?.bank_name ?? ""} />
           </div>
           <div>
             <label className={labelClass}>Cuenta bancaria</label>
             <Input
               name="bank_account_number"
+              required={isSelf}
               placeholder="Cuenta bancaria"
               defaultValue={defaultBankAccount}
             />
@@ -427,10 +486,10 @@ export function EmployeeForm({
             <Input name="swift_bic" placeholder="SWIFT / BIC" defaultValue={employee?.swift_bic ?? ""} />
           </div>
           <div>
-            <label className={labelClass}>Numero de ruta (ABA / routing)</label>
+            <label className={labelClass}>Número de ruta (ABA / routing)</label>
             <Input
               name="bank_route_number"
-              placeholder="Numero de ruta"
+              placeholder="Número de ruta"
               defaultValue={employee?.bank_route_number ?? ""}
             />
           </div>
@@ -441,7 +500,8 @@ export function EmployeeForm({
         <label className="mb-1 block text-sm text-zinc-700">Notas</label>
         <textarea
           name="notes"
-          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-xs focus:border-lm-aqua focus:outline-none focus:ring-2 focus:ring-lm-sky"
+          placeholder="Indicar dirección actual de tu cuenta"
+          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-xs placeholder:text-zinc-400 focus:border-lm-aqua focus:outline-none focus:ring-2 focus:ring-lm-sky"
           rows={4}
           defaultValue={employee?.notes ?? ""}
         />

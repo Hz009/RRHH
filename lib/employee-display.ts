@@ -1,13 +1,18 @@
 export const employeeTypeLabel: Record<string, string> = {
   full_time: "Full time",
   part_time: "Part time",
-  hourly: "Pago por horas",
+  hourly: "Hourly",
 };
 
 export const paymentMethodLabel: Record<string, string> = {
-  bank: "Banco",
+  bank: "Transferencia bancaria",
   paypal: "PayPal",
   wise: "Wise",
+};
+
+export const bankAccountTypeLabel: Record<string, string> = {
+  savings: "Cuenta de ahorros",
+  checking: "Cuenta corriente",
 };
 
 export const employmentStatusLabel: Record<string, string> = {

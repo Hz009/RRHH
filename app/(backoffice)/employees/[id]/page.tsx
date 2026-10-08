@@ -6,10 +6,11 @@ import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getCountryOptionsEs } from "@/lib/countries";
-import { employeeTypeLabel, employmentStatusLabel, paymentMethodLabel } from "@/lib/employee-display";
+import { bankAccountTypeLabel, employeeTypeLabel, employmentStatusLabel, paymentMethodLabel } from "@/lib/employee-display";
 import { formatCurrency, formatDate, formatDateOnlyLocal } from "@/lib/utils";
 import { getMonthlyBonusesForEmployee } from "@/services/bonuses.service";
-import { getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
+import { TeamManagerForm } from "@/components/employees/team-manager-form";
+import { getCurrentEmployee, getCurrentUserRole, getEmployeeById, listAssignableManagers } from "@/services/employees.service";
 
 interface EmployeeProfilePageProps {
   params: {
@@ -45,6 +46,12 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
   const previewBonuses = recentBonuses.slice(0, 5);
 
   const isAdmin = role === "admin";
+  const canReassignManager =
+    role === "manager" &&
+    currentEmployee &&
+    employee.manager_id === currentEmployee.id &&
+    employee.id !== currentEmployee.id;
+  const managerChoices = canReassignManager ? await listAssignableManagers() : [];
   const adminSupabase = createSupabaseAdminClient();
   const currentMonth = new Date().toISOString().slice(0, 7);
   const periodDate = `${currentMonth}-01`;
@@ -105,7 +112,12 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
                 <span className="font-medium text-zinc-700">Email:</span> {employee.email}
               </p>
               <p>
-                <span className="font-medium text-zinc-700">Telefono:</span> {employee.phone ?? "-"}
+                <span className="font-medium text-zinc-700">Teléfono:</span>{" "}
+                {[employee.phone_prefix, employee.phone].filter(Boolean).join(" ") || "-"}
+              </p>
+              <p>
+                <span className="font-medium text-zinc-700">WhatsApp:</span>{" "}
+                {[employee.whatsapp_prefix, employee.whatsapp_number].filter(Boolean).join(" ") || "-"}
               </p>
               <p>
                 <span className="font-medium text-zinc-700">Nacionalidad:</span> {countryLabel(employee.nationality)}
@@ -148,7 +160,7 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
                 <span className="font-medium text-zinc-700">Cargo:</span> {employee.job_title}
               </p>
               <p>
-                <span className="font-medium text-zinc-700">Tipo de empleado:</span>{" "}
+                <span className="font-medium text-zinc-700">Tipo de usuario:</span>{" "}
                 {employeeTypeLabel[employee.employee_type] ?? employee.employee_type}
               </p>
               <p>
@@ -161,7 +173,7 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
                 </Badge>
               </p>
               <p>
-                <span className="font-medium text-zinc-700">Vacaciones por ano:</span> {employee.vacation_days_per_year}
+                <span className="font-medium text-zinc-700">Días de vacaciones:</span> {employee.vacation_days_per_year}
               </p>
             </div>
           </Card>
@@ -170,7 +182,7 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
             <div className="space-y-2 text-sm">
               <p>
                 <span className="font-medium text-zinc-700">Metodo:</span>{" "}
-                {paymentMethodLabel[employee.payment_method] ?? employee.payment_method}
+                {employee.payment_method ? paymentMethodLabel[employee.payment_method] ?? employee.payment_method : "Sin indicar"}
               </p>
               <p>
                 <span className="font-medium text-zinc-700">Cuenta destino:</span> {employee.payment_account ?? "-"}
@@ -191,6 +203,12 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
                   {employee.bank_name ? (
                     <p>
                       <span className="font-medium text-zinc-700">Banco:</span> {employee.bank_name}
+                    </p>
+                  ) : null}
+                  {employee.bank_account_type ? (
+                    <p>
+                      <span className="font-medium text-zinc-700">Tipo de cuenta:</span>{" "}
+                      {bankAccountTypeLabel[employee.bank_account_type] ?? employee.bank_account_type}
                     </p>
                   ) : null}
                   {employee.bank_account_number ? (
@@ -292,11 +310,23 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
           </Link>
         </Card>
 
+        {canReassignManager ? (
+          <Card title="Manager del equipo">
+            <p className="mb-3 text-sm text-zinc-600">Puedes cambiar el manager solo de las personas de tu equipo.</p>
+            <TeamManagerForm employeeId={employee.id} managerId={employee.manager_id ?? ""} options={managerChoices} />
+          </Card>
+        ) : null}
+
         <Card title="Accesos rapidos">
           <div className="flex flex-wrap gap-3 text-sm">
             {isAdmin ? (
               <Link href={`/employees/${employee.id}/edit`} className="rounded-md border border-zinc-200 px-3 py-2 hover:bg-zinc-50">
                 Editar ficha
+              </Link>
+            ) : null}
+            {currentEmployee && employee.id === currentEmployee.id && role !== "admin" ? (
+              <Link href="/employee-portal/datos" className="rounded-md border border-zinc-200 px-3 py-2 hover:bg-zinc-50">
+                Editar mis datos
               </Link>
             ) : null}
             <Link href={`/employees/${employee.id}/salary`} className="rounded-md border border-zinc-200 px-3 py-2 hover:bg-zinc-50">

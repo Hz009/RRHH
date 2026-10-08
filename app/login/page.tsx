@@ -4,7 +4,11 @@ import { LoginForm } from "@/components/auth/login-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: { aviso?: string };
+}) {
   if (!isSupabaseConfigured()) {
     redirect("/dashboard");
   }
@@ -39,6 +43,11 @@ export default async function LoginPage() {
           </div>
           <h3 className="text-2xl font-semibold text-lm-dark-teal">Iniciar sesion</h3>
           <p className="mt-1 text-sm text-zinc-500">Ingresa tus credenciales para continuar.</p>
+          {searchParams?.aviso === "inactivo" ? (
+            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              Tu cuenta está inactiva. Ya no puedes entrar. Si crees que es un error, escribe a soporte de Recursos Humanos.
+            </p>
+          ) : null}
           <div className="mt-6">
             <LoginForm />
           </div>

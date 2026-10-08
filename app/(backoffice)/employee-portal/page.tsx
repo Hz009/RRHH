@@ -61,6 +61,11 @@ export default async function EmployeePortalPage() {
             <p>
               <span className="font-medium text-zinc-700">Nombre:</span> {currentEmployee.full_name}
             </p>
+            <p className="md:col-span-2">
+              <Link href="/employee-portal/datos" className="text-lm-dark-teal underline">
+                Editar mis datos
+              </Link>
+            </p>
             <p>
               <span className="font-medium text-zinc-700">Email:</span> {currentEmployee.email}
             </p>

@@ -12,6 +12,8 @@ import {
   deleteSalaryRecord,
   resetEmployeePassword,
   updateEmployee,
+  updateDirectReportManager,
+  updateOwnEmployeeContact,
   updateJobDepartmentRecord,
   updateSalaryRecord,
 } from "@/services/employees.service";
@@ -67,6 +69,37 @@ export async function updateEmployeeAction(
   revalidatePath("/employees");
   revalidatePath(`/employees/${id}/edit`);
   redirect("/employees?saved=update");
+}
+
+export async function updateOwnContactAction(
+  _prevState: { error?: string } | null,
+  formData: FormData
+): Promise<{ error?: string }> {
+  try {
+    await updateOwnEmployeeContact(Object.fromEntries(formData.entries()));
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "No se pudieron guardar tus datos." };
+  }
+
+  revalidatePath("/employee-portal");
+  revalidatePath("/employee-portal/datos");
+  redirect("/employee-portal");
+}
+
+export async function updateDirectReportManagerAction(
+  _prevState: { error?: string } | null,
+  formData: FormData
+): Promise<{ error?: string }> {
+  const employeeId = String(formData.get("employee_id") ?? "");
+  const managerId = String(formData.get("manager_id") ?? "");
+  try {
+    await updateDirectReportManager(employeeId, managerId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "No se pudo cambiar el manager." };
+  }
+
+  revalidatePath(`/employees/${employeeId}`);
+  redirect(`/employees/${employeeId}`);
 }
 
 export async function resetEmployeePasswordAction(
