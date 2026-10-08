@@ -7,7 +7,8 @@ const AUTH_WRITES = new Set(["updateUser", "signUp", "resetPasswordForEmail"]);
 const AUTH_ADMIN_WRITES = new Set(["createUser", "updateUserById", "deleteUser", "inviteUserByEmail"]);
 
 export function isDataReadOnly() {
-  const mode = process.env.HR_DATA_MODE ?? process.env.NEXT_PUBLIC_HR_DATA_MODE ?? "read-only";
+  // El portal en linea guarda datos. Solo consulta si se indica a proposito.
+  const mode = process.env.HR_DATA_MODE ?? process.env.NEXT_PUBLIC_HR_DATA_MODE ?? "read-write";
   return mode !== "read-write";
 }
 
