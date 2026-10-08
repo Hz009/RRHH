@@ -68,12 +68,9 @@ export function VacationRequestForm({
   }, [vacationAllowed, kind]);
 
   useEffect(() => {
-    if (state?.success) {
-      formRef.current?.reset();
-      setStartDate("");
-      setKind(vacationAllowed ? "vacation" : "permission");
-    }
-  }, [state, vacationAllowed]);
+    if (!state?.success) return;
+    window.location.assign("/dashboard");
+  }, [state]);
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">

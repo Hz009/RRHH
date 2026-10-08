@@ -8,26 +8,24 @@ export async function createVacationRequestAction(
   _prevState: { error?: string; success?: boolean } | null,
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
-  let request;
   try {
     const payload = Object.fromEntries(formData.entries());
-    request = await createVacationRequest(payload);
+    const request = await createVacationRequest(payload);
+    await createAuditLog({
+      module: "vacations",
+      action: "create_request",
+      entityName: "vacation_requests",
+      entityId: request.id,
+      newData: request,
+    });
+    revalidatePath("/vacations");
+    revalidatePath("/dashboard");
+    return { success: true };
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : "Error al crear solicitud.",
     };
   }
-
-  await createAuditLog({
-    module: "vacations",
-    action: "create_request",
-    entityName: "vacation_requests",
-    entityId: request.id,
-    newData: request,
-  });
-
-  revalidatePath("/vacations");
-  return { success: true };
 }
 
 export async function updateVacationRequestStatusAction(formData: FormData) {
