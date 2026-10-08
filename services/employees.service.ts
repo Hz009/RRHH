@@ -217,13 +217,13 @@ export async function getEmployeesPaged(
   }
 
   if (role === "manager" && currentEmp) {
-    const visibleIds = await visibleEmployeeIdsForManager(currentEmp.id);
-    query = query.in("id", visibleIds);
-  } else if (role === "employee") {
-    if (!currentEmp) {
+    const visibleIds = (await visibleEmployeeIdsForManager(currentEmp.id)).filter((id) => id !== currentEmp.id);
+    if (visibleIds.length === 0) {
       return { employees: [], total: 0, page, pageSize };
     }
-    query = query.eq("id", currentEmp.id);
+    query = query.in("id", visibleIds);
+  } else if (role === "employee") {
+    return { employees: [], total: 0, page, pageSize };
   }
 
   const { data, error, count } = await query.range(from, to);
@@ -538,14 +538,10 @@ export async function updateEmployee(id: string, input: Record<string, unknown>)
   const { data: previousEmployee, error: previousError } = await supabase.from("employees").select("*").eq("id", id).single();
   if (previousError) throw new Error(`Error loading previous employee data: ${previousError.message}`);
 
-  const nextCompSnapshot = { ...previousEmployee, ...payload } as Employee;
   const compensationFieldsChanged =
     String(previousEmployee.employee_type ?? "") !== String(payload.employee_type ?? "") ||
-    String(previousEmployee.payment_method ?? "") !== String(payload.payment_method ?? "") ||
-    String(previousEmployee.payment_account ?? "") !== String(payload.payment_account ?? "") ||
     Number(previousEmployee.current_salary_amount ?? 0) !== Number(payload.current_salary_amount ?? 0) ||
-    String(previousEmployee.current_salary_currency ?? "") !== String(payload.current_salary_currency ?? "") ||
-    bankOrPaymentExtrasChanged(previousEmployee, nextCompSnapshot);
+    String(previousEmployee.current_salary_currency ?? "") !== String(payload.current_salary_currency ?? "");
 
   if (
     compensationFieldsChanged &&
@@ -1375,6 +1371,62 @@ export async function updateOwnEmployeeContact(input: Record<string, unknown>) {
   if (authError) throw new Error(authError.message);
 
   return { id: employee.id, ...contact };
+}
+
+export async function updateEmploymentTerms(employeeId: string, input: Record<string, unknown>) {
+  if (!isSupabaseConfigured()) return;
+  await requireAdminUser();
+  const employee_type =
+    String(input.employee_type || "full_time") === "part_time"
+      ? "part_time"
+      : String(input.employee_type || "full_time") === "hourly"
+        ? "hourly"
+        : "full_time";
+  const employment_status = String(input.employment_status || "active");
+  const hourly_hours_source =
+    employee_type === "hourly"
+      ? String(input.hourly_hours_source || "manual_monthly") === "punch"
+        ? "punch"
+        : "manual_monthly"
+      : null;
+  const admin = createSupabaseAdminClient();
+  const patch: Record<string, unknown> = { employee_type, employment_status, hourly_hours_source };
+  if (employee_type === "hourly") patch.vacation_days_per_year = 0;
+  const { error } = await admin.from("employees").update(patch).eq("id", employeeId);
+  if (error) throw new Error(error.message);
+}
+
+export async function isLoansEnabledForEmail(email: string): Promise<boolean> {
+  if (!isSupabaseConfigured() || !email) return false;
+  const admin = createSupabaseAdminClient();
+  const { data: profile } = await admin.from("profiles").select("id").eq("email", email.toLowerCase()).maybeSingle();
+  if (!profile) return false;
+  const existing = await admin.auth.admin.getUserById(profile.id);
+  return existing.data.user?.user_metadata?.loans_enabled === true;
+}
+
+export async function actorCanUseLoans(): Promise<boolean> {
+  const role = await getCurrentUserRole();
+  if (role === "admin") return true;
+  const employee = await getCurrentEmployee();
+  if (!employee?.email) return false;
+  return isLoansEnabledForEmail(employee.email);
+}
+
+export async function setEmployeeLoansAccess(employeeId: string, enabled: boolean) {
+  if (!isSupabaseConfigured()) return;
+  await requireAdminUser();
+  const employee = await getEmployeeById(employeeId);
+  if (!employee) throw new Error("Empleado no encontrado.");
+  const admin = createSupabaseAdminClient();
+  const { data: profile } = await admin.from("profiles").select("id").eq("email", employee.email.toLowerCase()).maybeSingle();
+  if (!profile) throw new Error("Esta persona no tiene usuario de acceso.");
+  const existing = await admin.auth.admin.getUserById(profile.id);
+  if (existing.error || !existing.data.user) throw new Error(existing.error?.message ?? "No se encontro el usuario.");
+  const { error } = await admin.auth.admin.updateUserById(profile.id, {
+    user_metadata: { ...existing.data.user.user_metadata, loans_enabled: enabled },
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function updateDirectReportManager(employeeId: string, managerId: string) {

@@ -4,7 +4,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { Card, Notice } from "@/components/ui/card";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
-import { addJobDepartmentRecordAction, deleteJobDepartmentRecordAction, updateJobDepartmentRecordAction } from "@/app/(backoffice)/employees/actions";
+import { addJobDepartmentRecordAction, deleteJobDepartmentRecordAction, updateEmploymentTermsAction, updateJobDepartmentRecordAction } from "@/app/(backoffice)/employees/actions";
 import {
   LINGUAMEETING_DEPARTMENTS,
   LINGUAMEETING_JOB_TITLES,
@@ -18,6 +18,7 @@ interface EmployeeJobHistoryPageProps {
   };
   searchParams: {
     saved?: string;
+    error?: string;
   };
 }
 
@@ -45,6 +46,8 @@ export default async function EmployeeJobHistoryPage({ params, searchParams }: E
         {searchParams.saved === "job" ? <Notice tone="success" className="lg:col-span-3">Se guardo el cambio de cargo y departamento.</Notice> : null}
         {searchParams.saved === "job_update" ? <Notice tone="success" className="lg:col-span-3">Se actualizo el registro de cargo y departamento.</Notice> : null}
         {searchParams.saved === "job_delete" ? <Notice tone="success" className="lg:col-span-3">Se elimino el registro de cargo y departamento.</Notice> : null}
+        {searchParams.saved === "terms" ? <Notice tone="success" className="lg:col-span-3">Se actualizo el estado y el tipo de empleado.</Notice> : null}
+        {searchParams.error ? <Notice tone="error" className="lg:col-span-3">{searchParams.error}</Notice> : null}
 
         <Card title="Cargo y departamento actual" className="lg:col-span-1">
           <p className="text-sm text-zinc-600">Departamento actual</p>
@@ -53,6 +56,43 @@ export default async function EmployeeJobHistoryPage({ params, searchParams }: E
           <p className="text-xl font-semibold text-zinc-900">{employee.job_title}</p>
         </Card>
 
+        {isAdmin ? (
+        <Card title="Estado y tipo de empleado" className="lg:col-span-2">
+          <form action={updateEmploymentTermsAction} className="grid gap-3 md:grid-cols-3">
+            <input type="hidden" name="employee_id" value={employee.id} />
+            <div>
+              <label className="mb-1 block text-sm text-zinc-700">Estado</label>
+              <select name="employment_status" defaultValue={employee.employment_status} className={selectClass}>
+                <option value="active">Activo</option>
+                <option value="on_leave">De baja</option>
+                <option value="inactive">Inactivo</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-zinc-700">Tipo de empleado</label>
+              <select name="employee_type" defaultValue={employee.employee_type} className={selectClass}>
+                <option value="full_time">Full time</option>
+                <option value="part_time">Part time</option>
+                <option value="hourly">Por horas</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-zinc-700">Horas (solo por horas)</label>
+              <select name="hourly_hours_source" defaultValue={employee.hourly_hours_source ?? "manual_monthly"} className={selectClass}>
+                <option value="manual_monthly">Horas del mes</option>
+                <option value="punch">Marcaje</option>
+              </select>
+            </div>
+            <div className="md:col-span-3">
+              <ConfirmSubmitButton type="submit" confirmMessage="Confirma que deseas actualizar el estado y el tipo de empleado.">
+                Guardar estado y tipo
+              </ConfirmSubmitButton>
+            </div>
+          </form>
+        </Card>
+        ) : null}
+
+        {isAdmin ? (
         <Card title="Agregar cambio de cargo y departamento" className="lg:col-span-2">
           <form action={addJobDepartmentRecordAction} className="grid gap-3 md:grid-cols-4">
             <input type="hidden" name="employee_id" value={employee.id} />
@@ -108,6 +148,7 @@ export default async function EmployeeJobHistoryPage({ params, searchParams }: E
             ) : null}
           </form>
         </Card>
+        ) : null}
 
         <Card title="Historial de cargo y departamento" className="lg:col-span-3">
           <div className="space-y-3">
@@ -115,6 +156,15 @@ export default async function EmployeeJobHistoryPage({ params, searchParams }: E
               const isLatestRecord = index === 0;
               const rowDeptOptions = selectOptionsFromCatalog(LINGUAMEETING_DEPARTMENTS, record.department);
               const rowJobOptions = selectOptionsFromCatalog(LINGUAMEETING_JOB_TITLES, record.job_title);
+              if (!isAdmin) {
+                return (
+                  <div key={record.id} className="rounded-lg border border-zinc-200 p-3 text-sm text-lm-dark-teal">
+                    <p className="font-semibold">{record.job_title}</p>
+                    <p>{record.department}</p>
+                    <p className="text-xs text-zinc-500">Desde {record.effective_date}{record.reason ? ` · ${record.reason}` : ""}</p>
+                  </div>
+                );
+              }
               return (
                 <form key={record.id} action={updateJobDepartmentRecordAction} className="rounded-lg border border-zinc-200 p-3">
                   <input type="hidden" name="id" value={record.id} />

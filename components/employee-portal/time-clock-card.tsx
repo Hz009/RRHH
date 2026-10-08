@@ -20,10 +20,10 @@ export function TimeClockCard({ shiftOpen }: TimeClockCardProps) {
         <span className="font-medium text-zinc-800">{shiftOpen ? "Turno abierto (en curso)" : "Sin turno abierto"}</span>
       </p>
       {state?.error ? (
-        <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">{state.error}</p>
+        <p className="mt-2 rounded-xl border border-lm-orange/40 bg-lm-orange-light px-2 py-1.5 text-xs text-lm-orange">{state.error}</p>
       ) : null}
       {state?.ok ? (
-        <p className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-xs text-emerald-800">
+        <p className="mt-2 rounded-xl border border-lm-aqua/40 bg-lm-sky px-2 py-1.5 text-xs text-lm-dark-teal">
           Fichaje registrado.
         </p>
       ) : null}

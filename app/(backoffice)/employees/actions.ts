@@ -16,7 +16,9 @@ import {
   getEmployeeById,
   deleteSalaryRecord,
   resetEmployeePassword,
+  setEmployeeLoansAccess,
   updateEmployee,
+  updateEmploymentTerms,
   updateDirectReportManager,
   updateOwnEmployeeContact,
   updateJobDepartmentRecord,
@@ -89,6 +91,31 @@ export async function updateOwnContactAction(
   revalidatePath("/employee-portal");
   revalidatePath("/employee-portal/datos");
   redirect("/employee-portal");
+}
+
+export async function updateEmploymentTermsAction(formData: FormData) {
+  const employeeId = String(formData.get("employee_id") ?? "");
+  try {
+    await updateEmploymentTerms(employeeId, Object.fromEntries(formData.entries()));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "No se pudo guardar.";
+    redirect(`/employees/${employeeId}/job?error=${encodeURIComponent(message)}`);
+  }
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath(`/employees/${employeeId}/job`);
+  redirect(`/employees/${employeeId}/job?saved=terms`);
+}
+
+export async function setEmployeeLoansAccessAction(formData: FormData) {
+  const employeeId = String(formData.get("employee_id") ?? "");
+  try {
+    await setEmployeeLoansAccess(employeeId, formData.get("loans_enabled") === "on");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "No se pudo guardar el acceso a prestamos.";
+    redirect(`/employees/${employeeId}?error=${encodeURIComponent(message)}`);
+  }
+  revalidatePath(`/employees/${employeeId}`);
+  redirect(`/employees/${employeeId}?saved=loans`);
 }
 
 export async function updateDirectReportManagerAction(

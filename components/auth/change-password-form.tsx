@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function ChangePasswordForm() {
-  const router = useRouter();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,8 +41,7 @@ export function ChangePasswordForm() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      window.location.assign("/dashboard");
     } finally {
       setIsSubmitting(false);
     }
@@ -85,7 +82,7 @@ export function ChangePasswordForm() {
         />
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="rounded-xl border border-lm-orange/40 bg-lm-orange-light px-3 py-2 text-sm text-lm-orange">{error}</p> : null}
 
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Guardando..." : "Cambiar contrasena"}

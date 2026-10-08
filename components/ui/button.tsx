@@ -15,9 +15,13 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: ButtonVariant;
 }
 
-export function Button({ className, variant = "primary", type = "button", ...props }: ButtonProps) {
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { className, variant = "primary", type = "button", ...props },
+  ref
+) {
   return (
     <button
+      ref={ref}
       type={type}
       className={cn(
         "inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lm-aqua/50 disabled:cursor-not-allowed disabled:opacity-50",
@@ -27,4 +31,4 @@ export function Button({ className, variant = "primary", type = "button", ...pro
       {...props}
     />
   );
-}
+});

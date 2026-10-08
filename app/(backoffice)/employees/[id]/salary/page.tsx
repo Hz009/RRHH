@@ -80,6 +80,7 @@ export default async function EmployeeSalaryPage({ params, searchParams }: Emplo
           </div>
         </Card>
 
+        {isAdmin ? (
         <Card title="Agregar registro salarial" className="lg:col-span-2">
           <form action={addSalaryRecordAction} className="grid gap-3 md:grid-cols-4">
             <input type="hidden" name="employee_id" value={employee.id} />
@@ -123,6 +124,7 @@ export default async function EmployeeSalaryPage({ params, searchParams }: Emplo
             ) : null}
           </form>
         </Card>
+        ) : null}
 
         <Card title="Historial salarial" className="lg:col-span-3">
           <div className="space-y-3">
@@ -131,6 +133,14 @@ export default async function EmployeeSalaryPage({ params, searchParams }: Emplo
               const rowCurrencyOptions = payrollCurrencySelectOptions(record.currency);
               const rowCurrencyDefault = matchPayrollSelectValue(record.currency, rowCurrencyOptions, "USD");
 
+              if (!isAdmin) {
+                return (
+                  <div key={record.id} className="rounded-lg border border-zinc-200 p-3 text-sm text-lm-dark-teal">
+                    <p className="font-semibold">{formatCurrency(record.amount, record.currency)}</p>
+                    <p className="text-xs text-zinc-500">Desde {record.effective_date}{record.reason ? ` · ${record.reason}` : ""}</p>
+                  </div>
+                );
+              }
               return (
               <form key={record.id} action={updateSalaryRecordAction} className="rounded-lg border border-zinc-200 p-3">
                 <input type="hidden" name="id" value={record.id} />

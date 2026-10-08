@@ -28,7 +28,7 @@ export default async function EmployeePortalPage() {
     getMyPayrollOverview(),
     getMySalaryHistory(),
     showPunch ? getLastPunchEvent(currentEmployee.id) : Promise.resolve(null),
-    currentEmployee.employee_type === "full_time" || currentEmployee.employee_type === "part_time"
+    currentEmployee.employee_type === "hourly"
       ? getFlexHoursBalance(currentEmployee.id)
       : Promise.resolve(null),
   ]);

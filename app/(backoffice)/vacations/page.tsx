@@ -35,7 +35,16 @@ export default async function VacationsPage() {
     id: e.id,
     full_name: e.full_name,
     employee_type: e.employee_type,
+    hire_date: e.hire_date,
   }));
+  if (currentEmployee && !formEmployees.some((person) => person.id === currentEmployee.id)) {
+    formEmployees.unshift({
+      id: currentEmployee.id,
+      full_name: currentEmployee.full_name,
+      employee_type: currentEmployee.employee_type,
+      hire_date: currentEmployee.hire_date,
+    });
+  }
   const vacationSummaries = summaries.filter((summary) => {
     const person = employees.find((employee) => employee.id === summary.employeeId);
     return person?.employee_type !== "hourly";

@@ -27,7 +27,7 @@ export default async function EditEmployeePage({ params }: EditEmployeePageProps
 
   return (
     <div>
-      <Topbar title={`Editar empleado: ${employee.full_name}`} subtitle="Actualizacion de datos laborales y administrativos." />
+      <Topbar title={`Editar empleado: ${employee.full_name}`} subtitle="Aqui se corrigen los datos de la persona. El salario, el cargo, el estado y el tipo se cambian en su historial." />
       <div className="space-y-6 p-6">
         <Card title="Ficha del empleado">
           <EmployeeForm

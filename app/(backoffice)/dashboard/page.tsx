@@ -291,12 +291,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
         <section className={`grid gap-6 ${showPayrollChart ? "lg:grid-cols-3" : ""}`}>
           <DashboardRecentHires
-            employees={
-              isManager && currentEmp
-                ? recentIngresos.employees.filter((person) => person.id !== currentEmp.id)
-                : recentIngresos.employees
-            }
-            totalInScope={isManager ? Math.max(0, recentIngresos.total - 1) : recentIngresos.total}
+            employees={recentIngresos.employees}
+            totalInScope={recentIngresos.total}
             role={role}
             isAdmin={isAdmin}
             showPayrollChart={showPayrollChart}

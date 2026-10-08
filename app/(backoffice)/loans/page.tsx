@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Table } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { getCurrentUserRole, getEmployees } from "@/services/employees.service";
+import { actorCanUseLoans, getCurrentUserRole, getEmployees } from "@/services/employees.service";
 import { getLoans } from "@/services/loans.service";
 import { approveLoanAction, registerRepaymentAction, rejectLoanAction } from "@/app/(backoffice)/loans/actions";
 
@@ -38,6 +39,7 @@ const statusVariants: Record<string, "success" | "default" | "warning"> = {
 };
 
 export default async function LoansPage({ searchParams }: LoansPageProps) {
+  if (!(await actorCanUseLoans())) redirect("/dashboard");
   const [loans, role, employees] = await Promise.all([
     getLoans({
       query: searchParams.q,
@@ -68,7 +70,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
           </Notice>
         ) : null}
         {loanApproved ? <Notice tone="success">Prestamo aprobado.</Notice> : null}
-        {loanRejected ? <Notice tone="error" className="text-red-800">Prestamo rechazado.</Notice> : null}
+        {loanRejected ? <Notice tone="error">Prestamo rechazado.</Notice> : null}
 
         <Card>
           <form className="grid gap-3 md:grid-cols-4">

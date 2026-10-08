@@ -24,10 +24,10 @@ export function EmployeePasswordForm({ employeeId }: { employeeId: string }) {
         Cambia la contraseña del usuario de acceso asociado al email del empleado (Supabase Auth).
       </p>
       {state?.error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.error}</div>
+        <div className="rounded-xl border border-lm-orange/40 bg-lm-orange-light p-3 text-sm text-lm-orange">{state.error}</div>
       ) : null}
       {state?.ok ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        <div className="rounded-xl border border-lm-aqua/40 bg-lm-sky p-3 text-sm text-lm-dark-teal">
           Contraseña actualizada correctamente.
         </div>
       ) : null}

@@ -10,9 +10,9 @@ interface CardProps {
 }
 
 const noticeTone = {
-  success: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  error: "border-red-200 bg-red-50 text-red-700",
-  warning: "border-amber-200 bg-amber-50 text-amber-800",
+  success: "border-lm-aqua/40 bg-lm-sky text-lm-dark-teal",
+  error: "border-lm-orange/40 bg-lm-orange-light text-lm-orange",
+  warning: "border-lm-aqua/50 bg-lm-sky text-lm-dark-teal",
 } as const;
 
 export function Notice({

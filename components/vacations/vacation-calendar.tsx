@@ -21,7 +21,7 @@ export function VacationCalendar({ requests, employees, role, currentEmployeeId 
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(
-    isEmployee && currentEmployeeId ? currentEmployeeId : "all"
+    role === "admin" ? "all" : currentEmployeeId ?? "all"
   );
 
   const employeeNameById = useMemo(
@@ -129,7 +129,7 @@ export function VacationCalendar({ requests, employees, role, currentEmployeeId 
             onChange={(event) => setSelectedEmployeeId(event.target.value)}
             className="h-9 min-w-[240px] rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-700"
           >
-            <option value="all">Todos los empleados</option>
+            {role === "admin" ? <option value="all">Todos los empleados</option> : null}
             {employees.map((emp) => (
               <option key={emp.id} value={emp.id}>
                 {emp.full_name}

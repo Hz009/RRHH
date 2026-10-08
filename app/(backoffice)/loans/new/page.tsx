@@ -2,7 +2,9 @@ import { Topbar } from "@/components/layout/topbar";
 import { Card } from "@/components/ui/card";
 import { LoanForm } from "@/components/loans/loan-form";
 import { createLoanAction } from "@/app/(backoffice)/loans/actions";
-import { getCurrentEmployee, getCurrentUserRole, getEmployees } from "@/services/employees.service";
+import { redirect } from "next/navigation";
+
+import { actorCanUseLoans, getCurrentEmployee, getCurrentUserRole, getEmployees } from "@/services/employees.service";
 
 export default async function NewLoanPage() {
   const [allEmployees, role, currentEmployee] = await Promise.all([
@@ -11,10 +13,14 @@ export default async function NewLoanPage() {
     getCurrentEmployee(),
   ]);
 
+  if (!(await actorCanUseLoans())) redirect("/dashboard");
+
   const isAdmin = role === "admin";
   const employees = isAdmin
     ? allEmployees
-    : allEmployees.filter((e) => e.id === currentEmployee?.id);
+    : role === "manager"
+      ? allEmployees.filter((e) => e.id !== currentEmployee?.id)
+      : allEmployees.filter((e) => e.id === currentEmployee?.id);
 
   return (
     <div>

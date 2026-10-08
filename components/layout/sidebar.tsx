@@ -17,6 +17,7 @@ import {
   ReceiptText,
   Shield,
   UserRoundPlus,
+  UserRound,
   Users,
   UserSquare2,
   Waypoints,
@@ -33,13 +34,14 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   roles?: AppRole[];
+  needsLoans?: boolean;
 }
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: Home, roles: ["admin", "manager", "employee"] },
-  { href: "/employees", label: "Empleados", icon: Users, roles: ["admin", "manager", "employee"] },
+  { href: "/employees", label: "Empleados", icon: Users, roles: ["admin", "manager"] },
   { href: "/employees/new", label: "Alta de empleado", icon: UserRoundPlus, roles: ["admin"] },
-  { href: "/loans", label: "Prestamos", icon: CreditCard, roles: ["admin", "manager", "employee"] },
+  { href: "/loans", label: "Prestamos", icon: CreditCard, roles: ["admin", "manager", "employee"], needsLoans: true },
   { href: "/vacations", label: "Vacaciones", icon: ClipboardCheck, roles: ["admin", "manager", "employee"] },
   { href: "/attendance", label: "Fichaje y asistencia", icon: Fingerprint, roles: ["admin"] },
   { href: "/documents", label: "Documentos", icon: FileText, roles: ["admin", "manager", "employee"] },
@@ -55,9 +57,18 @@ const navItems: NavItem[] = [
 
 interface SidebarProps {
   role: AppRole;
+  profileHref?: string | null;
+  loansEnabled?: boolean;
 }
 
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar({ role, profileHref = null, loansEnabled = false }: SidebarProps) {
+  const items: NavItem[] = profileHref
+    ? [
+        navItems[0],
+        { href: profileHref, label: "My Profile", icon: UserRound, roles: ["manager", "employee"] },
+        ...navItems.slice(1),
+      ]
+    : navItems;
   const pathname = usePathname();
   const router = useRouter();
 
@@ -78,10 +89,15 @@ export function Sidebar({ role }: SidebarProps) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
-        {navItems
-          .filter((item) => !item.roles || item.roles.includes(role))
+        {items
+          .filter((item) => (!item.roles || item.roles.includes(role)) && (!item.needsLoans || role === "admin" || loansEnabled))
           .map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive =
+            item.href === profileHref
+              ? pathname === item.href
+              : item.href === "/employees"
+                ? pathname === "/employees" || (pathname.startsWith("/employees/") && pathname !== profileHref)
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (
             <Link

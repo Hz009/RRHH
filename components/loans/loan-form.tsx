@@ -45,10 +45,6 @@ export function LoanForm({ action, employees }: LoanFormProps) {
         <label className="mb-1 block text-sm text-zinc-700">Fecha en la que empieza a pagar</label>
         <Input name="start_date" type="date" required />
       </div>
-      <div>
-        <label className="mb-1 block text-sm text-zinc-700">Codigo descuento nomina</label>
-        <Input name="payroll_deduction_code" placeholder="LM-LOAN" />
-      </div>
       <div className="md:col-span-2">
         <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
           <input type="checkbox" name="payroll_deduction_enabled" />

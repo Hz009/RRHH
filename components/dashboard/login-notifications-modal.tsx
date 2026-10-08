@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 
+import { BrandDialog } from "@/components/ui/brand-dialog";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 
@@ -69,9 +70,10 @@ function DocumentRow({
 }) {
   const [isPending, startTransition] = useTransition();
   const [confirmed, setConfirmed] = useState(false);
+  const [ask, setAsk] = useState(false);
 
-  function handleConfirm() {
-    if (!window.confirm(`Confirmas la lectura del documento "${doc.title}"?`)) return;
+  function confirmRead() {
+    setAsk(false);
     startTransition(async () => {
       const fd = new FormData();
       fd.set("document_id", doc.id);
@@ -84,7 +86,14 @@ function DocumentRow({
   if (confirmed) return null;
 
   return (
-    <div className="rounded-lg border border-amber-200/90 bg-amber-50/90 p-3">
+    <div className="rounded-lg border border-lm-aqua/30 bg-lm-sky p-3">
+      <BrandDialog
+        open={ask}
+        message={`Confirmas la lectura del documento "${doc.title}"?`}
+        confirmLabel="Confirmar"
+        onCancel={() => setAsk(false)}
+        onConfirm={confirmRead}
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-zinc-900">{doc.title}</p>
@@ -103,7 +112,7 @@ function DocumentRow({
           ) : null}
           <button
             type="button"
-            onClick={handleConfirm}
+            onClick={() => setAsk(true)}
             disabled={isPending}
             className="inline-flex h-9 min-w-[44px] items-center justify-center rounded-lg bg-lm-dark-teal px-3 text-xs font-semibold text-white hover:bg-lm-aqua-dark disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lm-aqua/60"
           >

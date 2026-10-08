@@ -8,13 +8,15 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isDataReadOnly } from "@/lib/supabase/read-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getViewAsTarget } from "@/services/employees.service";
+import { actorCanUseLoans, getCurrentEmployee, getViewAsTarget } from "@/services/employees.service";
 
 export default async function BackofficeLayout({ children }: { children: React.ReactNode }) {
   let role: "admin" | "manager" | "employee" = "admin";
   let employmentStatus: string | null = null;
   let viewAsName: string | null = null;
   let viewAsInactive = false;
+  let profileHref: string | null = null;
+  let loansEnabled = false;
 
   if (isSupabaseConfigured()) {
     const supabase = createSupabaseServerClient();
@@ -65,9 +67,16 @@ export default async function BackofficeLayout({ children }: { children: React.R
     if (
       user.user_metadata?.must_complete_profile &&
       !isDataReadOnly() &&
-      path !== "/employee-portal/datos"
+      path !== "/employee-portal/datos" &&
+      path !== "/dashboard"
     ) {
-      redirect("/employee-portal/datos");
+      redirect("/dashboard");
+    }
+
+    const [profileEmployee, canUseLoans] = await Promise.all([getCurrentEmployee(), actorCanUseLoans()]);
+    loansEnabled = canUseLoans;
+    if (profileEmployee && role !== "admin") {
+      profileHref = `/employees/${profileEmployee.id}`;
     }
   }
 
@@ -100,7 +109,7 @@ export default async function BackofficeLayout({ children }: { children: React.R
         </p>
       ) : null}
       <div className="flex min-h-screen">
-        <Sidebar role={role} />
+        <Sidebar role={role} profileHref={profileHref} loansEnabled={loansEnabled} />
         <ViewOnlyShield active={Boolean(viewAsName)}>
           <main className={viewAsName ? "view-only min-w-0 flex-1" : "min-w-0 flex-1"}>{children}</main>
         </ViewOnlyShield>

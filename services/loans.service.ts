@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getCurrentUserRole } from "@/services/employees.service";
+import { actorCanUseLoans, getCurrentEmployee, getCurrentUserRole, getEmployees } from "@/services/employees.service";
 import { mockLoanRepayments, mockLoans } from "@/lib/mock-data";
 import type { Loan, LoanFilters, LoanRepayment } from "@/types/domain";
 
@@ -10,8 +10,15 @@ export async function getLoans(filters: LoanFilters = {}): Promise<Loan[]> {
     return filterLoans(mockLoans, filters);
   }
 
-  const supabase = createSupabaseServerClient();
-  let query = supabase.from("employee_loans").select("*").order("created_at", { ascending: false });
+  const role = await getCurrentUserRole();
+  if (role !== "admin" && !(await actorCanUseLoans())) return [];
+  const admin = createSupabaseAdminClient();
+  let query = admin.from("employee_loans").select("*").order("created_at", { ascending: false });
+  if (role !== "admin") {
+    const visibleIds = (await getEmployees()).map((employee) => employee.id);
+    if (visibleIds.length === 0) return [];
+    query = query.in("employee_id", visibleIds);
+  }
 
   if (filters.status) query = query.eq("status", filters.status as Loan["status"]);
   if (filters.query) query = query.ilike("description", `%${filters.query}%`);
@@ -30,7 +37,7 @@ export async function createLoan(input: Record<string, unknown>) {
   const start_date = String(input.start_date || "");
   const currency = String(input.currency || "USD");
   const payroll_deduction_enabled = String(input.payroll_deduction_enabled || "") === "on";
-  const payroll_deduction_code = input.payroll_deduction_code ? String(input.payroll_deduction_code) : null;
+  const payroll_deduction_code = null;
 
   if (
     !employee_id ||
@@ -66,6 +73,18 @@ export async function createLoan(input: Record<string, unknown>) {
   }
 
   const role = await getCurrentUserRole();
+  if (role !== "admin") {
+    if (!(await actorCanUseLoans())) throw new Error("Los prestamos no estan activos para esta cuenta.");
+    const current = await getCurrentEmployee();
+    const team = await getEmployees();
+    const allowed =
+      role === "manager"
+        ? team.filter((person) => person.id !== current?.id).map((person) => person.id)
+        : current
+          ? [current.id]
+          : [];
+    if (!allowed.includes(employee_id)) throw new Error("No puedes solicitar un prestamo para esta persona.");
+  }
   const initialStatus = role === "admin" ? "active" : "draft";
   const dbClient = role === "admin" ? createSupabaseServerClient() : createSupabaseAdminClient();
 

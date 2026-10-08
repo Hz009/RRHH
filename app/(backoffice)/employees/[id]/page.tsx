@@ -4,17 +4,21 @@ import { notFound, redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card, Notice } from "@/components/ui/card";
 import { getCountryOptionsEs } from "@/lib/countries";
 import { bankAccountTypeLabel, employeeTypeLabel, employmentStatusLabel, paymentMethodLabel } from "@/lib/employee-display";
 import { formatCurrency, formatDate, formatDateOnlyLocal } from "@/lib/utils";
 import { getMonthlyBonusesForEmployee } from "@/services/bonuses.service";
-import { TeamManagerForm } from "@/components/employees/team-manager-form";
-import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById, listAssignableManagers } from "@/services/employees.service";
+import { setEmployeeLoansAccessAction } from "@/app/(backoffice)/employees/actions";
+import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById, isLoansEnabledForEmail } from "@/services/employees.service";
 
 interface EmployeeProfilePageProps {
   params: {
     id: string;
+  };
+  searchParams?: {
+    saved?: string;
+    error?: string;
   };
 }
 
@@ -24,7 +28,7 @@ function countryLabel(code: string | null | undefined): string {
   return opts.find((o) => o.value === code)?.label ?? code;
 }
 
-export default async function EmployeeProfilePage({ params }: EmployeeProfilePageProps) {
+export default async function EmployeeProfilePage({ params, searchParams }: EmployeeProfilePageProps) {
   const [role, currentEmployee, employee] = await Promise.all([
     getCurrentUserRole(),
     getCurrentEmployee(),
@@ -43,12 +47,8 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
   const previewBonuses = recentBonuses.slice(0, 5);
 
   const isAdmin = role === "admin";
-  const canReassignManager =
-    role === "manager" &&
-    currentEmployee &&
-    employee.manager_id === currentEmployee.id &&
-    employee.id !== currentEmployee.id;
-  const managerChoices = canReassignManager ? await listAssignableManagers() : [];
+  const manager = employee.manager_id ? await getEmployeeById(employee.manager_id) : null;
+  const loansEnabled = isAdmin ? await isLoansEnabledForEmail(employee.email) : false;
   const adminSupabase = createSupabaseAdminClient();
   const currentMonth = new Date().toISOString().slice(0, 7);
   const periodDate = `${currentMonth}-01`;
@@ -150,6 +150,9 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
 
           <Card title="Datos laborales">
             <div className="space-y-2 text-sm">
+              <p>
+                <span className="font-medium text-zinc-700">Manager:</span> {manager?.full_name ?? "Sin manager"}
+              </p>
               <p>
                 <span className="font-medium text-zinc-700">Departamento:</span> {employee.department}
               </p>
@@ -309,10 +312,20 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
           </Link>
         </Card>
 
-        {canReassignManager ? (
-          <Card title="Manager del equipo">
-            <p className="mb-3 text-sm text-zinc-600">Puedes cambiar el manager solo de las personas de tu equipo.</p>
-            <TeamManagerForm employeeId={employee.id} managerId={employee.manager_id ?? ""} options={managerChoices} />
+        {isAdmin ? (
+          <Card title="Prestamos">
+            {searchParams?.saved === "loans" ? <Notice tone="success">Se actualizo el acceso a prestamos.</Notice> : null}
+            {searchParams?.error ? <Notice tone="error">{searchParams.error}</Notice> : null}
+            <form action={setEmployeeLoansAccessAction} className="mt-3 flex items-center gap-3 text-sm text-lm-dark-teal">
+              <input type="hidden" name="employee_id" value={employee.id} />
+              <label className="flex items-center gap-2">
+                <input type="checkbox" name="loans_enabled" defaultChecked={loansEnabled} className="h-4 w-4 accent-lm-dark-teal" />
+                Prestamo activo
+              </label>
+              <button type="submit" className="rounded-lg bg-lm-dark-teal px-3 py-1.5 text-sm font-semibold text-white">
+                Guardar
+              </button>
+            </form>
           </Card>
         ) : null}
 
@@ -334,9 +347,9 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
             <Link href={`/employees/${employee.id}/job`} className="rounded-md border border-zinc-200 px-3 py-2 hover:bg-zinc-50">
               Historial cargo/depto
             </Link>
-            {isAdmin || role === "manager" ? (
+            {employee.employee_type === "hourly" && (isAdmin || role === "manager" || currentEmployee?.id === employee.id) ? (
               <Link href={`/employees/${employee.id}/time`} className="rounded-md border border-zinc-200 px-3 py-2 hover:bg-zinc-50">
-                Tiempo y bolsa de horas
+                Bolsa de horas
               </Link>
             ) : null}
           </div>

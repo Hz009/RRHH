@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 
+import { BrandDialog } from "@/components/ui/brand-dialog";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { getCountryOptionsEs, matchPayrollSelectValue, payrollCurrencySelectOptions } from "@/lib/countries";
@@ -36,6 +37,7 @@ interface EmployeeFormProps {
   submitLabel: string;
   confirmMessage: string;
   mode?: "admin" | "self";
+  managerName?: string | null;
 }
 
 export function EmployeeForm({
@@ -47,8 +49,12 @@ export function EmployeeForm({
   submitLabel,
   confirmMessage,
   mode = "admin",
+  managerName = null,
 }: EmployeeFormProps) {
   const [state, formAction] = useFormState(action, null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const allowHighRate = useRef(false);
+  const [rateWarning, setRateWarning] = useState(false);
   const [hireDate, setHireDate] = useState(employee?.hire_date ?? "");
   const [salaryEffectiveDate, setSalaryEffectiveDate] = useState(
     employee?.current_salary_effective_date ?? employee?.hire_date ?? ""
@@ -98,13 +104,9 @@ export function EmployeeForm({
     const employeeType = String(formData.get("employee_type") ?? "");
     const salaryAmount = Number(formData.get("current_salary_amount") ?? 0);
 
-    if (employeeType === "hourly" && salaryAmount > 100) {
-      const ok = window.confirm(
-        "Aviso: este colaborador es de pago por horas y la tarifa supera 100 por hora. ¿Confirmas que deseas guardar este valor?"
-      );
-      if (!ok) {
-        event.preventDefault();
-      }
+    if (employeeType === "hourly" && salaryAmount > 100 && !allowHighRate.current) {
+      event.preventDefault();
+      setRateWarning(true);
     }
   }
 
@@ -113,12 +115,22 @@ export function EmployeeForm({
   }
 
   return (
-    <form action={formAction} onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+    <form ref={formRef} action={formAction} onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+      <BrandDialog
+        open={rateWarning}
+        message="Aviso: este colaborador es de pago por horas y la tarifa supera 100 por hora. ¿Confirmas que deseas guardar este valor?"
+        onCancel={() => setRateWarning(false)}
+        onConfirm={() => {
+          allowHighRate.current = true;
+          setRateWarning(false);
+          formRef.current?.requestSubmit();
+        }}
+      />
       {employee ? <input type="hidden" name="id" value={employee.id} /> : null}
 
       {state?.error ? (
-        <div className="md:col-span-2 rounded-md border border-red-200 bg-red-50 p-3">
-          <p className="text-sm text-red-700">{state.error}</p>
+        <div className="md:col-span-2 rounded-xl border border-lm-orange/40 bg-lm-orange-light p-3">
+          <p className="text-sm text-lm-orange">{state.error}</p>
         </div>
       ) : null}
 
@@ -166,13 +178,70 @@ export function EmployeeForm({
           <Input name="whatsapp_number" defaultValue={employee?.whatsapp_number ?? ""} placeholder="Número" />
         </div>
       </div>
-      {isSelf ? null : <>
+      {isSelf && employee ? (
+        <div className="md:col-span-2 rounded-2xl border border-lm-aqua/25 bg-lm-sky/70 p-4 text-sm text-lm-dark-teal">
+          <p className="font-semibold">Datos laborales</p>
+          <p className="mt-2">Manager: {managerName || "Sin manager"}</p>
+          <p>Departamento: {employee.department}</p>
+          <p>Cargo: {employee.job_title}</p>
+          <p>Tipo: {employee.employee_type === "hourly" ? "Por horas" : employee.employee_type === "part_time" ? "Part time" : "Full time"}</p>
+          <p>Estado: {employee.employment_status === "on_leave" ? "De baja" : employee.employment_status === "inactive" ? "Inactivo" : "Activo"}</p>
+          <p>Fecha de contratacion: {employee.hire_date}</p>
+          <p>
+            {employee.employee_type === "hourly" ? "Tarifa por hora" : "Salario actual"}: {employee.current_salary_amount}{" "}
+            {employee.current_salary_currency}
+          </p>
+        </div>
+      ) : null}
+      {employee && !isSelf ? (
+        <>
+          <input type="hidden" name="department" value={employee.department} />
+          <input type="hidden" name="job_title" value={employee.job_title} />
+          <input type="hidden" name="employee_type" value={employee.employee_type} />
+          <input type="hidden" name="hourly_hours_source" value={employee.hourly_hours_source ?? "manual_monthly"} />
+          <input type="hidden" name="hire_date" value={employee.hire_date} />
+          <input type="hidden" name="employment_status" value={employee.employment_status} />
+          <input type="hidden" name="vacation_days_per_year" value={String(employee.vacation_days_per_year)} />
+          <input type="hidden" name="current_salary_amount" value={String(employee.current_salary_amount)} />
+          <input type="hidden" name="current_salary_currency" value={employee.current_salary_currency} />
+          <input type="hidden" name="current_salary_effective_date" value={employee.current_salary_effective_date ?? employee.hire_date} />
+          <input type="hidden" name="user_role" value={defaultUserRole} />
+          <div className="md:col-span-2 rounded-2xl border border-lm-aqua/25 bg-lm-sky/70 p-4 text-sm text-lm-dark-teal">
+            <p className="font-semibold">Datos que cambian con el tiempo</p>
+            <p className="mt-1 text-xs">Se ven aquí actualizados. El salario, el cargo, el departamento, el estado y el tipo se cambian en su historial.</p>
+            <p className="mt-2">Departamento: {employee.department}</p>
+            <p>Cargo: {employee.job_title}</p>
+            <p>Tipo de empleado: {employee.employee_type === "hourly" ? "Por horas" : employee.employee_type === "part_time" ? "Part time" : "Full time"}</p>
+            <p>Cuenta: {defaultUserRole === "manager" ? "Manager" : "Empleado"}</p>
+            <p>Estado: {employee.employment_status === "on_leave" ? "De baja" : employee.employment_status === "inactive" ? "Inactivo" : "Activo"}</p>
+            <p>Fecha de contratacion: {employee.hire_date}</p>
+            <p>
+              {employee.employee_type === "hourly" ? "Tarifa por hora" : "Salario actual"}: {employee.current_salary_amount}{" "}
+              {employee.current_salary_currency}
+            </p>
+          </div>
+          <div>
+            <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Manager asignado</label>
+            <select name="manager_id" defaultValue={employee.manager_id ?? ""} className={selectNeutral}>
+              <option value="">Sin manager</option>
+              {managerOptions
+                .filter((manager) => manager.id !== employee.id)
+                .map((manager) => (
+                  <option key={manager.id} value={manager.id}>
+                    {manager.full_name} ({manager.email})
+                  </option>
+                ))}
+            </select>
+          </div>
+        </>
+      ) : null}
+      {!employee ? <>
       <div>
         <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Departamento</label>
         <select
           name="department"
           required
-          defaultValue={employee?.department ?? ""}
+          defaultValue=""
           className={selectNeutral}
         >
           <option value="" disabled>
@@ -190,7 +259,7 @@ export function EmployeeForm({
         <select
           name="job_title"
           required
-          defaultValue={employee?.job_title ?? ""}
+          defaultValue=""
           className={selectNeutral}
         >
           <option value="" disabled>
@@ -214,7 +283,7 @@ export function EmployeeForm({
           <option value="manager">Manager</option>
         </select>
       </div>
-      </>}
+      </> : null}
       <div>
         <label className={labelClass}>Nacionalidad</label>
         <select name="nationality" defaultValue={employee?.nationality ?? ""} className={selectNeutral}>
@@ -241,7 +310,8 @@ export function EmployeeForm({
           ))}
         </select>
       </div>
-      {isSelf ? null : <div>
+      {!employee ? <>
+      <div>
         <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Tipo de usuario</label>
         <select
           name="employee_type"
@@ -253,15 +323,15 @@ export function EmployeeForm({
           <option value="part_time">Part time</option>
           <option value="hourly">Hourly</option>
         </select>
-      </div>}
-      {!isSelf && employeeType === "hourly" ? (
+      </div>
+      {employeeType === "hourly" ? (
         <div className="md:col-span-2">
           <label className="mb-1 block text-sm font-medium text-lm-dark-teal">
             Como se registran las horas (solo por horas)
           </label>
           <select
             name="hourly_hours_source"
-            defaultValue={employee?.hourly_hours_source ?? "manual_monthly"}
+            defaultValue="manual_monthly"
             className={selectNeutral}
           >
             <option value="manual_monthly">Horas mensuales cargadas por administracion (ej. coaches)</option>
@@ -269,13 +339,12 @@ export function EmployeeForm({
           </select>
         </div>
       ) : null}
-      {isSelf ? null : <>
       <div>
         <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Manager asignado</label>
-        <select name="manager_id" defaultValue={employee?.manager_id ?? ""} className={selectNeutral}>
+        <select name="manager_id" defaultValue="" className={selectNeutral}>
           <option value="">Sin manager</option>
           {managerOptions
-            .filter((manager) => manager.id !== employee?.id)
+            .filter((manager) => manager.id)
             .map((manager) => (
               <option key={manager.id} value={manager.id}>
                 {manager.full_name} ({manager.email})
@@ -301,7 +370,7 @@ export function EmployeeForm({
         <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Estado</label>
         <select
           name="employment_status"
-          defaultValue={employee?.employment_status ?? "active"}
+          defaultValue="active"
           className={selectNeutral}
         >
           <option value="active">Activo</option>
@@ -318,7 +387,7 @@ export function EmployeeForm({
           type="number"
           step="0.01"
           min="0"
-          defaultValue={employee?.current_salary_amount ?? 0}
+          defaultValue={0}
         />
         {employeeType === "hourly" ? (
           <p className="mt-1 text-xs text-zinc-500">Es el precio por hora.</p>
@@ -358,12 +427,12 @@ export function EmployeeForm({
           name="vacation_days_per_year"
           type="number"
           min="0"
-          defaultValue={employee?.vacation_days_per_year || 30}
+          defaultValue={30}
         />
         <p className="mt-1 text-xs text-zinc-500">Por defecto 30. Se puede cambiar, por ejemplo a 15 o 20.</p>
       </div>
       )}
-      </>}
+      </> : null}
 
       <SectionTitle>Titular y domicilio (como en banco o documento de identidad)</SectionTitle>
       <div className="md:col-span-2">

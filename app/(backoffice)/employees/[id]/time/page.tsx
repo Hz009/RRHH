@@ -32,12 +32,9 @@ export default async function EmployeeTimePage({ params }: PageProps) {
 
   const isAdmin = role === "admin";
   const attendance = await listAttendanceForEmployee(employee.id, 100);
-  const flexBalance =
-    employee.employee_type === "full_time" || employee.employee_type === "part_time"
-      ? await getFlexHoursBalance(employee.id)
-      : null;
-  const flexLedger =
-    employee.employee_type === "full_time" || employee.employee_type === "part_time"
+  const isHourly = employee.employee_type === "hourly";
+  const flexBalance = isHourly ? await getFlexHoursBalance(employee.id) : null;
+  const flexLedger = isHourly
       ? await listFlexHoursLedger(employee.id, 50)
       : [];
 
@@ -48,8 +45,8 @@ export default async function EmployeeTimePage({ params }: PageProps) {
   return (
     <div>
       <Topbar
-        title={`Tiempo y bolsa de horas: ${employee.full_name}`}
-        subtitle="Fichajes, horas por mes y movimientos de horas libres (full/part time)."
+        title={`Bolsa de horas: ${employee.full_name}`}
+        subtitle="Horas libres y horas que se reponen. Solo para quien trabaja por horas."
       />
       <div className="space-y-6 p-6">
         <div className="flex flex-wrap gap-3 text-sm">
@@ -154,7 +151,7 @@ export default async function EmployeeTimePage({ params }: PageProps) {
           </Card>
         ) : null}
 
-        {employee.employee_type === "full_time" || employee.employee_type === "part_time" ? (
+        {isHourly ? (
           <>
             <Card title="Movimientos bolsa de horas (libres / repone)">
               {flexLedger.length === 0 ? (

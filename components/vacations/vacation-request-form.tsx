@@ -10,7 +10,7 @@ interface VacationRequestFormProps {
     prevState: { error?: string; success?: boolean } | null,
     formData: FormData
   ) => Promise<{ error?: string; success?: boolean }>;
-  employees: Array<{ id: string; full_name: string; employee_type?: string }>;
+  employees: Array<{ id: string; full_name: string; employee_type?: string; hire_date?: string }>;
   currentEmployeeId: string | null;
   currentEmployeeName: string | null;
   currentEmployeeType?: string | null;
@@ -41,7 +41,9 @@ export function VacationRequestForm({
   const today = new Date().toISOString().slice(0, 10);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(
-    canCreateForOthers ? employees[0]?.id ?? "" : currentEmployeeId ?? ""
+    currentEmployeeId && employees.some((employee) => employee.id === currentEmployeeId)
+      ? currentEmployeeId
+      : employees[0]?.id ?? ""
   );
   const selectedType = canCreateForOthers
     ? employees.find((employee) => employee.id === selectedEmployeeId)?.employee_type
@@ -52,8 +54,9 @@ export function VacationRequestForm({
   const isPermission = kind === "permission";
 
   const availableDays = availableDaysByEmployee[selectedEmployeeId] ?? 0;
-
-  const endDateMin = startDate || (isAdmin ? "" : today);
+  const hireDate = employees.find((employee) => employee.id === selectedEmployeeId)?.hire_date ?? "";
+  const startMin = isAdmin ? hireDate : [today, hireDate].filter(Boolean).sort().at(-1) ?? "";
+  const endDateMin = startDate ? [startDate, startMin].filter(Boolean).sort().at(-1) ?? "" : startMin;
 
   const endDateMax = useMemo(() => {
     if (!startDate || availableDays <= 0) return "";
@@ -75,14 +78,14 @@ export function VacationRequestForm({
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
       {state?.error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3">
-          <p className="text-sm text-red-700">{state.error}</p>
+        <div className="rounded-xl border border-lm-orange/40 bg-lm-orange-light p-3">
+          <p className="text-sm text-lm-orange">{state.error}</p>
         </div>
       ) : null}
 
       {state?.success ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3">
-          <p className="text-sm text-emerald-700">
+        <div className="rounded-xl border border-lm-aqua/40 bg-lm-sky p-3">
+          <p className="text-sm text-lm-dark-teal">
             Solicitud registrada correctamente.
           </p>
         </div>
@@ -131,7 +134,7 @@ export function VacationRequestForm({
             {isPermission ? "El permiso no descuenta días de vacaciones." : (
               <>
                 Dias disponibles:{" "}
-                <span className="font-semibold text-emerald-700">{availableDays}</span>
+                <span className="font-semibold text-lm-dark-teal">{availableDays}</span>
               </>
             )}
           </p>
@@ -144,7 +147,7 @@ export function VacationRequestForm({
             name="start_date"
             type="date"
             required
-            min={isAdmin ? undefined : today}
+            min={startMin || undefined}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
@@ -165,7 +168,7 @@ export function VacationRequestForm({
             </p>
           ) : null}
           {!isPermission && availableDays <= 0 ? (
-            <p className="mt-1 text-xs text-red-600">
+            <p className="mt-1 text-xs text-lm-orange">
               Sin dias disponibles.
             </p>
           ) : null}

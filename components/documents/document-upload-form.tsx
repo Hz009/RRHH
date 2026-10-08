@@ -34,14 +34,14 @@ export function DocumentUploadForm({
       className="space-y-4"
     >
       {state?.error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3">
-          <p className="text-sm text-red-700">{state.error}</p>
+        <div className="rounded-xl border border-lm-orange/40 bg-lm-orange-light p-3">
+          <p className="text-sm text-lm-orange">{state.error}</p>
         </div>
       ) : null}
 
       {state?.success ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3">
-          <p className="text-sm text-emerald-700">
+        <div className="rounded-xl border border-lm-aqua/40 bg-lm-sky p-3">
+          <p className="text-sm text-lm-dark-teal">
             Documento guardado correctamente.
           </p>
         </div>

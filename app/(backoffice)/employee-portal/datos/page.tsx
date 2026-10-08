@@ -12,6 +12,7 @@ export default async function OwnContactPage() {
 
   const employee = await getEmployeeById(current.id);
   if (!employee) redirect("/dashboard");
+  const manager = employee.manager_id ? await getEmployeeById(employee.manager_id) : null;
 
   return (
     <div>
@@ -30,6 +31,7 @@ export default async function OwnContactPage() {
             defaultUserRole="employee"
             submitLabel="Guardar mis datos"
             confirmMessage="Confirma que tus datos de domicilio y pago están bien."
+            managerName={manager?.full_name ?? null}
           />
         </Card>
       </div>
