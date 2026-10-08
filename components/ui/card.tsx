@@ -31,7 +31,7 @@ export function Card({ title, description, className, bodyClassName, children }:
   return (
     <section
       className={cn(
-        "rounded-2xl border border-lm-aqua/15 bg-white p-5 shadow-sm ring-1 ring-zinc-100/60 transition-shadow hover:shadow-md",
+        "rounded-3xl border border-lm-dark-teal/10 bg-white p-6 shadow-[0_10px_40px_rgba(24,110,116,0.05)]",
         className
       )}
     >

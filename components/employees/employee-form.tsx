@@ -15,17 +15,14 @@ import {
 import { cn } from "@/lib/utils";
 import type { Employee } from "@/types/domain";
 
-const labelClass = "mb-1 block text-sm font-medium text-lm-dark-teal";
+const labelClass = "mb-1 flex min-h-10 items-end text-sm font-medium text-lm-dark-teal";
 
 const selectTeal = cn(
-  "h-10 w-full rounded-lg border border-lm-dark-teal/50 bg-white px-3 text-sm text-zinc-900 shadow-xs",
+  "h-11 w-full rounded-xl border border-lm-dark-teal/15 bg-white px-3 text-sm text-zinc-900",
   "focus:border-lm-aqua focus:outline-none focus:ring-2 focus:ring-lm-sky"
 );
 
-const selectNeutral = cn(
-  "h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-xs",
-  "focus:border-lm-aqua focus:outline-none focus:ring-2 focus:ring-lm-sky"
-);
+const selectNeutral = selectTeal;
 
 interface EmployeeFormProps {
   action: (
@@ -126,23 +123,23 @@ export function EmployeeForm({
       ) : null}
 
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Codigo</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Codigo</label>
         <Input value={employeeCode} readOnly disabled />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Nombre</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Nombre</label>
         <Input name="first_name" required defaultValue={defaultFirstName} />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Apellido</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Apellido</label>
         <Input name="last_name" required defaultValue={defaultLastName} />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Email</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Email</label>
         <Input name="email" type="email" required defaultValue={employee?.email} />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Teléfono</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Teléfono</label>
         <div className="flex gap-2">
           <select name="phone_prefix" defaultValue={employee?.phone_prefix ?? ""} className={cn(selectNeutral, "w-40 shrink-0")}>
             <option value="">Prefijo</option>
@@ -156,7 +153,7 @@ export function EmployeeForm({
         </div>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">WhatsApp</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">WhatsApp</label>
         <div className="flex gap-2">
           <select name="whatsapp_prefix" defaultValue={employee?.whatsapp_prefix ?? ""} className={cn(selectNeutral, "w-40 shrink-0")}>
             <option value="">Prefijo</option>
@@ -171,7 +168,7 @@ export function EmployeeForm({
       </div>
       {isSelf ? null : <>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Departamento</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Departamento</label>
         <select
           name="department"
           required
@@ -189,7 +186,7 @@ export function EmployeeForm({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Cargo</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Cargo</label>
         <select
           name="job_title"
           required
@@ -207,7 +204,7 @@ export function EmployeeForm({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Tipo de empleado</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Tipo de empleado</label>
         <select
           name="user_role"
           defaultValue={defaultUserRole}
@@ -245,7 +242,7 @@ export function EmployeeForm({
         </select>
       </div>
       {isSelf ? null : <div>
-        <label className="mb-1 block text-sm text-zinc-700">Tipo de usuario</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Tipo de usuario</label>
         <select
           name="employee_type"
           value={employeeType}
@@ -274,7 +271,7 @@ export function EmployeeForm({
       ) : null}
       {isSelf ? null : <>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Manager asignado</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Manager asignado</label>
         <select name="manager_id" defaultValue={employee?.manager_id ?? ""} className={selectNeutral}>
           <option value="">Sin manager</option>
           {managerOptions
@@ -287,7 +284,7 @@ export function EmployeeForm({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Fecha de contratacion</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Fecha de contratacion</label>
         <Input
           name="hire_date"
           type="date"
@@ -301,7 +298,7 @@ export function EmployeeForm({
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Estado</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Estado</label>
         <select
           name="employment_status"
           defaultValue={employee?.employment_status ?? "active"}
@@ -313,7 +310,9 @@ export function EmployeeForm({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Salario actual</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">
+          {employeeType === "hourly" ? "Tarifa por hora" : employee ? "Salario actual" : "Salario inicial"}
+        </label>
         <Input
           name="current_salary_amount"
           type="number"
@@ -321,9 +320,14 @@ export function EmployeeForm({
           min="0"
           defaultValue={employee?.current_salary_amount ?? 0}
         />
+        {employeeType === "hourly" ? (
+          <p className="mt-1 text-xs text-zinc-500">Es el precio por hora.</p>
+        ) : !employee ? (
+          <p className="mt-1 text-xs text-zinc-500">Es el primer sueldo. Después se ve como salario actual.</p>
+        ) : null}
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Moneda (sueldo, factura y bonos)</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Moneda (sueldo, factura y bonos)</label>
         <select
           name="current_salary_currency"
           required
@@ -338,25 +342,27 @@ export function EmployeeForm({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Fecha salario actual</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Fecha de inicio</label>
         <Input
           name="current_salary_effective_date"
           type="date"
           value={salaryEffectiveDate}
           onChange={(event) => setSalaryEffectiveDate(event.target.value)}
-          readOnly={!employee}
         />
+        <p className="mt-1 text-xs text-zinc-500">Por defecto es la fecha del primer salario.</p>
       </div>
+      {employeeType === "hourly" ? null : (
       <div>
-        <label className="mb-1 block text-sm text-zinc-700">Días de vacaciones</label>
-        <p className="mb-1 text-xs text-zinc-500">Por defecto 30. Se puede cambiar, por ejemplo a 15 o 20.</p>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Días de vacaciones</label>
         <Input
           name="vacation_days_per_year"
           type="number"
           min="0"
-          defaultValue={employee?.vacation_days_per_year ?? 30}
+          defaultValue={employee?.vacation_days_per_year || 30}
         />
+        <p className="mt-1 text-xs text-zinc-500">Por defecto 30. Se puede cambiar, por ejemplo a 15 o 20.</p>
       </div>
+      )}
       </>}
 
       <SectionTitle>Titular y domicilio (como en banco o documento de identidad)</SectionTitle>
@@ -427,28 +433,26 @@ export function EmployeeForm({
           <option value="wise">Wise</option>
         </select>
       </div>
-      {paymentMethod === "paypal" ? (
-        <div>
-          <label className={labelClass}>Correo PayPal</label>
-          <Input
-            name="paypal_email"
-            type="email"
-            placeholder="Correo PayPal"
-            required={isSelf}
-            defaultValue={defaultPaypal}
-          />
-        </div>
-      ) : null}
-
-      {paymentMethod === "wise" ? (
-        <>
-          <SectionTitle>Cuenta Wise</SectionTitle>
-          <div className="md:col-span-2">
+      <div className={paymentMethod === "paypal" || paymentMethod === "wise" ? "" : "hidden md:block"}>
+        {paymentMethod === "paypal" ? (
+          <>
+            <label className={labelClass}>Correo PayPal</label>
+            <Input
+              name="paypal_email"
+              type="email"
+              placeholder="Correo PayPal"
+              required={isSelf}
+              defaultValue={defaultPaypal}
+            />
+          </>
+        ) : null}
+        {paymentMethod === "wise" ? (
+          <>
             <label className={labelClass}>Correo Wise</label>
             <Input name="wise_account" type="email" required={isSelf} placeholder="Correo Wise" defaultValue={defaultWise} />
-          </div>
-        </>
-      ) : null}
+          </>
+        ) : null}
+      </div>
 
       {paymentMethod === "bank" ? (
         <>
@@ -497,7 +501,7 @@ export function EmployeeForm({
       ) : null}
 
       <div className="md:col-span-2">
-        <label className="mb-1 block text-sm text-zinc-700">Notas</label>
+        <label className="mb-1 flex min-h-10 items-end text-sm text-zinc-700">Notas</label>
         <textarea
           name="notes"
           placeholder="Indicar dirección actual de tu cuenta"

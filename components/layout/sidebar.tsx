@@ -69,15 +69,15 @@ export function Sidebar({ role }: SidebarProps) {
   }
 
   return (
-    <aside className="hidden w-72 border-r border-lm-aqua/20 bg-lm-sidebar lg:block">
-      <div className="flex h-16 items-center border-b border-lm-aqua/15 px-6">
+    <aside className="sticky top-0 hidden h-screen w-[17.5rem] shrink-0 flex-col border-r border-lm-dark-teal/10 bg-white/90 backdrop-blur-xl lg:flex">
+      <div className="flex h-20 items-center px-6">
         <div>
-          <p className="text-xs font-semibold tracking-widest text-lm-aqua uppercase">LinguaMeeting</p>
-          <h1 className="text-base font-semibold text-lm-dark-teal">HRIS Back Office</h1>
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-lm-aqua uppercase">LinguaMeeting</p>
+          <h1 className="mt-0.5 text-base font-semibold tracking-tight text-lm-dark-teal">HRIS</h1>
         </div>
       </div>
 
-      <nav className="space-y-0.5 p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
         {navItems
           .filter((item) => !item.roles || item.roles.includes(role))
           .map((item) => {
@@ -88,10 +88,10 @@ export function Sidebar({ role }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
                 isActive
-                  ? "bg-lm-sky text-lm-dark-teal font-semibold ring-1 ring-lm-aqua/25"
-                  : "text-zinc-600 hover:bg-lm-sky hover:text-lm-dark-teal"
+                  ? "bg-lm-sky font-semibold text-lm-dark-teal"
+                  : "text-zinc-500 hover:bg-lm-sky/70 hover:text-lm-dark-teal"
               )}
             >
               <Icon size={16} />
@@ -100,11 +100,11 @@ export function Sidebar({ role }: SidebarProps) {
           );
         })}
       </nav>
-      <div className="border-t border-lm-aqua/15 p-3">
+      <div className="p-3">
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-lm-orange/10 px-3 py-2 text-sm font-medium text-lm-orange transition-colors hover:bg-lm-orange/20"
+          className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-lm-orange-light hover:text-lm-orange"
         >
           <LogOut size={14} />
           Cerrar sesion

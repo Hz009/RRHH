@@ -10,9 +10,10 @@ interface VacationRequestFormProps {
     prevState: { error?: string; success?: boolean } | null,
     formData: FormData
   ) => Promise<{ error?: string; success?: boolean }>;
-  employees: Array<{ id: string; full_name: string }>;
+  employees: Array<{ id: string; full_name: string; employee_type?: string }>;
   currentEmployeeId: string | null;
   currentEmployeeName: string | null;
+  currentEmployeeType?: string | null;
   canCreateForOthers: boolean;
   isAdmin: boolean;
   availableDaysByEmployee: Record<string, number>;
@@ -29,6 +30,7 @@ export function VacationRequestForm({
   employees,
   currentEmployeeId,
   currentEmployeeName,
+  currentEmployeeType = null,
   canCreateForOthers,
   isAdmin,
   availableDaysByEmployee,
@@ -41,7 +43,11 @@ export function VacationRequestForm({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(
     canCreateForOthers ? employees[0]?.id ?? "" : currentEmployeeId ?? ""
   );
-  const [kind, setKind] = useState<"vacation" | "permission">("vacation");
+  const selectedType = canCreateForOthers
+    ? employees.find((employee) => employee.id === selectedEmployeeId)?.employee_type
+    : currentEmployeeType;
+  const vacationAllowed = selectedType !== "hourly";
+  const [kind, setKind] = useState<"vacation" | "permission">(vacationAllowed ? "vacation" : "permission");
   const [startDate, setStartDate] = useState("");
   const isPermission = kind === "permission";
 
@@ -55,11 +61,16 @@ export function VacationRequestForm({
   }, [startDate, availableDays]);
 
   useEffect(() => {
+    if (!vacationAllowed && kind === "vacation") setKind("permission");
+  }, [vacationAllowed, kind]);
+
+  useEffect(() => {
     if (state?.success) {
       formRef.current?.reset();
       setStartDate("");
+      setKind(vacationAllowed ? "vacation" : "permission");
     }
-  }, [state]);
+  }, [state, vacationAllowed]);
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
@@ -82,11 +93,11 @@ export function VacationRequestForm({
           <label className="mb-1 block text-sm text-zinc-700">Tipo</label>
           <select
             name="request_kind"
-            value={kind}
+            value={vacationAllowed ? kind : "permission"}
             onChange={(event) => setKind(event.target.value === "permission" ? "permission" : "vacation")}
             className="h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm"
           >
-            <option value="vacation">Vacaciones</option>
+            {vacationAllowed ? <option value="vacation">Vacaciones</option> : null}
             <option value="permission">Permiso</option>
           </select>
         </div>

@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -5,6 +6,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { NextResponse } from "next/server";
 
 import type { PayslipLine } from "@/lib/payslip";
+import { VIEW_AS_COOKIE } from "@/lib/view-as";
 import { formatCurrency, formatDateOnlyLocal } from "@/lib/utils";
 import { buildMyPayslip } from "@/services/payslip.service";
 
@@ -41,6 +43,9 @@ function drawLines(
 }
 
 export async function POST(request: Request) {
+  if (cookies().get(VIEW_AS_COOKIE)?.value) {
+    return new NextResponse("Solo puedes ver esta boleta.", { status: 403 });
+  }
   const form = await request.formData();
   if (String(form.get("decision") ?? "") !== "accept") {
     return new NextResponse("Hay que aceptar la boleta antes de descargarla.", { status: 400 });

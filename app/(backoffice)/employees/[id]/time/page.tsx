@@ -8,7 +8,7 @@ import { Table } from "@/components/ui/table";
 import { groupAttendanceByLocalDay, partitionClockInOut, sumWorkedHoursFromPunchEvents } from "@/lib/attendance-hours";
 import { formatDateDdMmYyFromYmd, formatTimeLocal, formatWorkedDurationFromHours } from "@/lib/utils";
 import { listAttendanceForEmployee } from "@/services/attendance.service";
-import { getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
+import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
 import { getFlexHoursBalance, listFlexHoursLedger } from "@/services/flex-hours.service";
 
 interface PageProps {
@@ -24,12 +24,7 @@ export default async function EmployeeTimePage({ params }: PageProps) {
 
   if (!employee) notFound();
 
-  const canView =
-    role === "admin" ||
-    (role === "manager" &&
-      currentEmployee &&
-      (employee.id === currentEmployee.id || employee.manager_id === currentEmployee.id)) ||
-    (role === "employee" && currentEmployee && employee.id === currentEmployee.id);
+  const canView = await canViewEmployeeRecord(role, currentEmployee?.id, employee.id);
 
   if (!canView) {
     redirect("/employees");

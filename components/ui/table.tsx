@@ -9,7 +9,7 @@ export function Table({ children, className }: TableProps) {
   return (
     <div
       className={cn(
-        "overflow-x-auto rounded-2xl border border-lm-aqua/15 bg-white shadow-sm ring-1 ring-zinc-100/60",
+        "overflow-x-auto rounded-3xl border border-lm-dark-teal/10 bg-white shadow-[0_10px_40px_rgba(24,110,116,0.05)]",
         className
       )}
     >

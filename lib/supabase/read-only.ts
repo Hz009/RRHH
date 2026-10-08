@@ -12,10 +12,10 @@ export function isDataReadOnly() {
   return mode !== "read-write";
 }
 
-function blockedQuery() {
+function blockedQuery(message = READ_ONLY_MESSAGE) {
   const result = {
     data: null,
-    error: { message: READ_ONLY_MESSAGE, code: "READ_ONLY" },
+    error: { message, code: "READ_ONLY" },
     count: null,
     status: 403,
     statusText: "Forbidden",
@@ -32,18 +32,18 @@ function blockedQuery() {
   return chain;
 }
 
-function blockedAuth() {
+function blockedAuth(message = READ_ONLY_MESSAGE) {
   return Promise.resolve({
     data: { user: null, session: null },
-    error: { message: READ_ONLY_MESSAGE, name: "AuthApiError", status: 403 },
+    error: { message, name: "AuthApiError", status: 403 },
   });
 }
 
-function wrapQuery(builder: object) {
+function wrapQuery(builder: object, message = READ_ONLY_MESSAGE) {
   return new Proxy(builder, {
     get(target, prop, receiver) {
       if (typeof prop === "string" && QUERY_WRITES.has(prop)) {
-        return () => blockedQuery();
+        return () => blockedQuery(message);
       }
       const value = Reflect.get(target, prop, receiver);
       return typeof value === "function" ? value.bind(target) : value;
@@ -51,11 +51,11 @@ function wrapQuery(builder: object) {
   });
 }
 
-function wrapBucket(bucket: object) {
+function wrapBucket(bucket: object, message = READ_ONLY_MESSAGE) {
   return new Proxy(bucket, {
     get(target, prop, receiver) {
       if (typeof prop === "string" && STORAGE_WRITES.has(prop)) {
-        return async () => ({ data: null, error: { message: READ_ONLY_MESSAGE } });
+        return async () => ({ data: null, error: { message } });
       }
       const value = Reflect.get(target, prop, receiver);
       return typeof value === "function" ? value.bind(target) : value;
@@ -63,12 +63,12 @@ function wrapBucket(bucket: object) {
   });
 }
 
-function wrapStorage(storage: object) {
+function wrapStorage(storage: object, message = READ_ONLY_MESSAGE) {
   return new Proxy(storage, {
     get(target, prop, receiver) {
       if (prop === "from") {
         const from = (target as { from: (id: string) => object }).from;
-        return (bucket: string) => wrapBucket(Reflect.apply(from, target, [bucket]));
+        return (bucket: string) => wrapBucket(Reflect.apply(from, target, [bucket]), message);
       }
       const value = Reflect.get(target, prop, receiver);
       return typeof value === "function" ? value.bind(target) : value;
@@ -76,11 +76,11 @@ function wrapStorage(storage: object) {
   });
 }
 
-function wrapAuthAdmin(admin: object) {
+function wrapAuthAdmin(admin: object, message = READ_ONLY_MESSAGE) {
   return new Proxy(admin, {
     get(target, prop, receiver) {
       if (typeof prop === "string" && AUTH_ADMIN_WRITES.has(prop)) {
-        return async () => ({ data: null, error: { message: READ_ONLY_MESSAGE, status: 403 } });
+        return async () => ({ data: null, error: { message, status: 403 } });
       }
       const value = Reflect.get(target, prop, receiver);
       return typeof value === "function" ? value.bind(target) : value;
@@ -88,14 +88,14 @@ function wrapAuthAdmin(admin: object) {
   });
 }
 
-function wrapAuth(auth: object) {
+function wrapAuth(auth: object, message = READ_ONLY_MESSAGE) {
   return new Proxy(auth, {
     get(target, prop, receiver) {
       if (prop === "admin") {
-        return wrapAuthAdmin(Reflect.get(target, "admin", receiver) as object);
+        return wrapAuthAdmin(Reflect.get(target, "admin", receiver) as object, message);
       }
       if (typeof prop === "string" && AUTH_WRITES.has(prop)) {
-        return async () => blockedAuth();
+        return async () => blockedAuth(message);
       }
       const value = Reflect.get(target, prop, receiver);
       return typeof value === "function" ? value.bind(target) : value;
@@ -103,23 +103,26 @@ function wrapAuth(auth: object) {
   });
 }
 
-export function withReadOnlyData<T extends object>(client: T): T {
-  if (!isDataReadOnly()) return client;
-
+export function withBlockedWrites<T extends object>(client: T, message = READ_ONLY_MESSAGE): T {
   return new Proxy(client, {
     get(target, prop, receiver) {
       if (prop === "from") {
         return (table: string) =>
-          wrapQuery(Reflect.apply((target as { from: (name: string) => object }).from, target, [table]));
+          wrapQuery(Reflect.apply((target as { from: (name: string) => object }).from, target, [table]), message);
       }
       if (prop === "storage") {
-        return wrapStorage(Reflect.get(target, "storage", receiver) as object);
+        return wrapStorage(Reflect.get(target, "storage", receiver) as object, message);
       }
       if (prop === "auth") {
-        return wrapAuth(Reflect.get(target, "auth", receiver) as object);
+        return wrapAuth(Reflect.get(target, "auth", receiver) as object, message);
       }
       const value = Reflect.get(target, prop, receiver);
       return typeof value === "function" ? value.bind(target) : value;
     },
   }) as T;
+}
+
+export function withReadOnlyData<T extends object>(client: T): T {
+  if (!isDataReadOnly()) return client;
+  return withBlockedWrites(client, READ_ONLY_MESSAGE);
 }

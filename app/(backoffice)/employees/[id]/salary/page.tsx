@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { matchPayrollSelectValue, payrollCurrencySelectOptions } from "@/lib/countries";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { getCurrentUserRole, getEmployeeById, getSalaryHistory } from "@/services/employees.service";
+import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById, getSalaryHistory } from "@/services/employees.service";
 import { getPaymentHistoryForEmployee } from "@/services/payments.service";
 import { addSalaryRecordAction, deleteSalaryRecordAction, updateSalaryRecordAction } from "@/app/(backoffice)/employees/actions";
 
@@ -23,13 +23,15 @@ interface EmployeeSalaryPageProps {
 }
 
 export default async function EmployeeSalaryPage({ params, searchParams }: EmployeeSalaryPageProps) {
-  const [employee, history, role, paymentHistory] = await Promise.all([
+  const [employee, history, role, paymentHistory, currentEmployee] = await Promise.all([
     getEmployeeById(params.id),
     getSalaryHistory(params.id),
     getCurrentUserRole(),
     getPaymentHistoryForEmployee(params.id, 36),
+    getCurrentEmployee(),
   ]);
   if (!employee) notFound();
+  if (!(await canViewEmployeeRecord(role, currentEmployee?.id, employee.id))) redirect("/employees");
   const isAdmin = role === "admin";
   const salarySaved = searchParams.saved === "salary";
   const salaryUpdated = searchParams.saved === "salary_update";
@@ -53,12 +55,19 @@ export default async function EmployeeSalaryPage({ params, searchParams }: Emplo
 
   return (
     <div>
-      <Topbar title={`Salario: ${employee.full_name}`} subtitle="Salario actual e historial salarial del empleado." />
+      <Topbar
+        title={employee.employee_type === "hourly" ? `Tarifa: ${employee.full_name}` : `Salario: ${employee.full_name}`}
+        subtitle={
+          employee.employee_type === "hourly"
+            ? "Precio por hora e historial de la tarifa."
+            : "Salario actual e historial salarial del empleado."
+        }
+      />
       <div className="grid gap-6 p-6 lg:grid-cols-3">
         {salarySaved ? <Notice tone="success" className="lg:col-span-3">Se guardo el cambio en el historial salarial.</Notice> : null}
         {salaryUpdated ? <Notice tone="success" className="lg:col-span-3">Se actualizo el registro salarial correctamente.</Notice> : null}
         {salaryDeleted ? <Notice tone="success" className="lg:col-span-3">Se elimino el registro salarial correctamente.</Notice> : null}
-        <Card title="Salario actual" className="lg:col-span-1">
+        <Card title={employee.employee_type === "hourly" ? "Tarifa por hora" : "Salario actual"} className="lg:col-span-1">
           <p className="text-3xl font-bold text-zinc-900">
             {formatCurrency(employee.current_salary_amount, employee.current_salary_currency)}
           </p>
@@ -95,7 +104,7 @@ export default async function EmployeeSalaryPage({ params, searchParams }: Emplo
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-700">Fecha efectiva</label>
+              <label className="mb-1 block text-sm text-zinc-700">Fecha de inicio</label>
               <Input name="effective_date" type="date" required disabled={!isAdmin} />
             </div>
             <div>
@@ -155,7 +164,7 @@ export default async function EmployeeSalaryPage({ params, searchParams }: Emplo
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs text-zinc-700">Fecha efectiva</label>
+                    <label className="mb-1 block text-xs text-zinc-700">Fecha de inicio</label>
                     <Input
                       name="effective_date"
                       type="date"

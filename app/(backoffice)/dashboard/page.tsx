@@ -188,7 +188,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           ) : null}
           {isManager ? (
             <>
-              <KpiCard label="Empleados a cargo" value={String(kpis.totalEmployees)} emphasized />
+              <KpiCard label="Empleados a cargo" value={String(Math.max(0, kpis.totalEmployees - 1))} emphasized />
               <KpiCard label="Prestamos activos" value={String(kpis.openLoans)} />
               <KpiCard
                 label="Vacaciones pendientes"
@@ -291,8 +291,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
         <section className={`grid gap-6 ${showPayrollChart ? "lg:grid-cols-3" : ""}`}>
           <DashboardRecentHires
-            employees={recentIngresos.employees}
-            totalInScope={recentIngresos.total}
+            employees={
+              isManager && currentEmp
+                ? recentIngresos.employees.filter((person) => person.id !== currentEmp.id)
+                : recentIngresos.employees
+            }
+            totalInScope={isManager ? Math.max(0, recentIngresos.total - 1) : recentIngresos.total}
             role={role}
             isAdmin={isAdmin}
             showPayrollChart={showPayrollChart}

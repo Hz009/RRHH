@@ -34,7 +34,13 @@ export default async function VacationsPage() {
   const formEmployees = employees.map((e) => ({
     id: e.id,
     full_name: e.full_name,
+    employee_type: e.employee_type,
   }));
+  const vacationSummaries = summaries.filter((summary) => {
+    const person = employees.find((employee) => employee.id === summary.employeeId);
+    return person?.employee_type !== "hourly";
+  });
+  const hideVacationBalances = !canCreateForOthers && currentEmployee?.employee_type === "hourly";
 
   const availableDaysByEmployee: Record<string, number> = {};
   for (const s of summaries) {
@@ -45,14 +51,17 @@ export default async function VacationsPage() {
     <div>
       <Topbar title="Vacaciones y ausencias" subtitle="Solicitudes, aprobaciones, saldos y calendario de vacaciones." />
       <div className="space-y-6 p-6">
-        <VacationBalancePanel summaries={summaries} role={role} currentEmployeeId={currentEmployee?.id ?? null} />
+        {hideVacationBalances ? null : (
+          <VacationBalancePanel summaries={vacationSummaries} role={role} currentEmployeeId={currentEmployee?.id ?? null} />
+        )}
 
-        <Card title="Nueva solicitud de vacaciones">
+        <Card title={hideVacationBalances ? "Nuevo permiso" : "Nueva solicitud"}>
           <VacationRequestForm
             action={createVacationRequestAction}
             employees={formEmployees}
             currentEmployeeId={currentEmployee?.id ?? null}
             currentEmployeeName={currentEmployee?.full_name ?? null}
+            currentEmployeeType={currentEmployee?.employee_type ?? null}
             canCreateForOthers={canCreateForOthers}
             isAdmin={isAdmin}
             availableDaysByEmployee={availableDaysByEmployee}

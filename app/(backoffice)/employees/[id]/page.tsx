@@ -10,7 +10,7 @@ import { bankAccountTypeLabel, employeeTypeLabel, employmentStatusLabel, payment
 import { formatCurrency, formatDate, formatDateOnlyLocal } from "@/lib/utils";
 import { getMonthlyBonusesForEmployee } from "@/services/bonuses.service";
 import { TeamManagerForm } from "@/components/employees/team-manager-form";
-import { getCurrentEmployee, getCurrentUserRole, getEmployeeById, listAssignableManagers } from "@/services/employees.service";
+import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById, listAssignableManagers } from "@/services/employees.service";
 
 interface EmployeeProfilePageProps {
   params: {
@@ -33,10 +33,7 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
 
   if (!employee) notFound();
 
-  const canView =
-    role === "admin" ||
-    (role === "manager" && currentEmployee && (employee.id === currentEmployee.id || employee.manager_id === currentEmployee.id)) ||
-    (role === "employee" && currentEmployee && employee.id === currentEmployee.id);
+  const canView = await canViewEmployeeRecord(role, currentEmployee?.id, employee.id);
 
   if (!canView) {
     redirect("/employees");
@@ -172,9 +169,11 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
                   {employmentStatusLabel[employee.employment_status] ?? employee.employment_status}
                 </Badge>
               </p>
-              <p>
-                <span className="font-medium text-zinc-700">Días de vacaciones:</span> {employee.vacation_days_per_year}
-              </p>
+              {employee.employee_type === "hourly" ? null : (
+                <p>
+                  <span className="font-medium text-zinc-700">Días de vacaciones:</span> {employee.vacation_days_per_year}
+                </p>
+              )}
             </div>
           </Card>
 
@@ -335,7 +334,7 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
             <Link href={`/employees/${employee.id}/job`} className="rounded-md border border-zinc-200 px-3 py-2 hover:bg-zinc-50">
               Historial cargo/depto
             </Link>
-            {isAdmin || (role === "manager" && currentEmployee && (employee.id === currentEmployee.id || employee.manager_id === currentEmployee.id)) ? (
+            {isAdmin || role === "manager" ? (
               <Link href={`/employees/${employee.id}/time`} className="rounded-md border border-zinc-200 px-3 py-2 hover:bg-zinc-50">
                 Tiempo y bolsa de horas
               </Link>

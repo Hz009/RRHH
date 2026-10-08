@@ -1,11 +1,113 @@
+import { cache } from "react";
+
 import { normalizePayrollCurrencyCode } from "@/lib/countries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { readViewAsEmployeeId } from "@/lib/view-as";
 import { mockEmployees, mockJobDepartmentHistory, mockSalaryHistory } from "@/lib/mock-data";
 import type { Employee, EmployeeFilters, JobDepartmentHistory, SalaryHistory } from "@/types/domain";
 
 type AppRole = "admin" | "manager" | "employee";
+
+type OrgLink = { id: string; manager_id: string | null };
+
+export function reportingTreeIds(links: OrgLink[], rootId: string): string[] {
+  const childrenByManager = new Map<string, string[]>();
+  for (const link of links) {
+    if (!link.manager_id) continue;
+    const children = childrenByManager.get(link.manager_id) ?? [];
+    children.push(link.id);
+    childrenByManager.set(link.manager_id, children);
+  }
+
+  const visible = new Set<string>([rootId]);
+  const pending = [rootId];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current) continue;
+    for (const childId of childrenByManager.get(current) ?? []) {
+      if (visible.has(childId)) continue;
+      visible.add(childId);
+      pending.push(childId);
+    }
+  }
+  return [...visible];
+}
+
+const loadOrgLinks = cache(async (): Promise<OrgLink[]> => {
+  if (!isSupabaseConfigured()) {
+    return mockEmployees.map((employee) => ({ id: employee.id, manager_id: employee.manager_id }));
+  }
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.from("employees").select("id,manager_id");
+  if (error) throw new Error(`Error loading org: ${error.message}`);
+  return data ?? [];
+});
+
+export async function visibleEmployeeIdsForManager(managerId: string): Promise<string[]> {
+  return reportingTreeIds(await loadOrgLinks(), managerId);
+}
+
+export async function canViewEmployeeRecord(
+  role: AppRole,
+  currentEmployeeId: string | null | undefined,
+  employeeId: string
+): Promise<boolean> {
+  if (role === "admin") return true;
+  if (!currentEmployeeId) return false;
+  if (role === "employee") return currentEmployeeId === employeeId;
+  if (role === "manager") {
+    const visible = await visibleEmployeeIdsForManager(currentEmployeeId);
+    return visible.includes(employeeId);
+  }
+  return false;
+}
+
+const getSignedInEmployeeId = cache(async (): Promise<string | null> => {
+  if (!isSupabaseConfigured()) return mockEmployees[0]?.id ?? null;
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return null;
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin.from("employees").select("id").eq("email", user.email.toLowerCase()).maybeSingle();
+  return data?.id ?? null;
+});
+
+const loadAdminEmails = cache(async (): Promise<Set<string>> => {
+  if (!isSupabaseConfigured()) return new Set();
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.from("profiles").select("email").eq("role", "admin");
+  if (error) throw new Error(`Error loading admin accounts: ${error.message}`);
+  return new Set((data ?? []).map((row) => String(row.email).toLowerCase()));
+});
+
+function withoutAdminAccounts<T extends { email: string }>(rows: T[], adminEmails: Set<string>): T[] {
+  if (adminEmails.size === 0) return rows;
+  return rows.filter((row) => !adminEmails.has(String(row.email).toLowerCase()));
+}
+
+export async function canImpersonateEmployee(employeeId: string): Promise<boolean> {
+  if (!employeeId) return false;
+  const realRole = await getRealUserRole();
+  if (realRole === "admin") return true;
+  if (realRole !== "manager") return false;
+  const myId = await getSignedInEmployeeId();
+  if (!myId || myId === employeeId) return false;
+  const visible = await visibleEmployeeIdsForManager(myId);
+  return visible.includes(employeeId);
+}
+
+export type ViewAsTarget = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: AppRole;
+  employmentStatus: string | null;
+  employeeType: Employee["employee_type"];
+};
 
 export async function getEmployees(filters: EmployeeFilters = {}): Promise<Employee[]> {
   if (!isSupabaseConfigured()) {
@@ -35,14 +137,13 @@ export async function getEmployees(filters: EmployeeFilters = {}): Promise<Emplo
   const { data, error } = await query;
   if (error) throw new Error(`Error loading employees: ${error.message}`);
 
-  const allEmployees = data ?? [];
+  const allEmployees = withoutAdminAccounts(data ?? [], await loadAdminEmails());
 
   if (role === "admin") return allEmployees;
 
   if (role === "manager" && currentEmp) {
-    return allEmployees.filter(
-      (e) => e.id === currentEmp.id || e.manager_id === currentEmp.id
-    );
+    const visible = new Set(reportingTreeIds(allEmployees, currentEmp.id));
+    return allEmployees.filter((employee) => visible.has(employee.id));
   }
 
   if (currentEmp) {
@@ -106,9 +207,18 @@ export async function getEmployeesPaged(
     query = query.in("email", emails);
   }
   if (filterRest.query) query = query.or(`full_name.ilike.%${filterRest.query}%,email.ilike.%${filterRest.query}%`);
+  if (filterRest.profileRole === "admin") {
+    return { employees: [], total: 0, page, pageSize };
+  }
+
+  const adminEmails = [...(await loadAdminEmails())];
+  if (adminEmails.length > 0) {
+    query = query.not("email", "in", `(${adminEmails.map((email) => `"${email}"`).join(",")})`);
+  }
 
   if (role === "manager" && currentEmp) {
-    query = query.or(`id.eq.${currentEmp.id},manager_id.eq.${currentEmp.id}`);
+    const visibleIds = await visibleEmployeeIdsForManager(currentEmp.id);
+    query = query.in("id", visibleIds);
   } else if (role === "employee") {
     if (!currentEmp) {
       return { employees: [], total: 0, page, pageSize };
@@ -138,7 +248,7 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
   return data;
 }
 
-export async function getCurrentUserRole(): Promise<AppRole> {
+export const getRealUserRole = cache(async (): Promise<AppRole> => {
   if (!isSupabaseConfigured()) return "admin";
 
   const supabase = createSupabaseServerClient();
@@ -153,6 +263,60 @@ export async function getCurrentUserRole(): Promise<AppRole> {
     return profile.role;
   }
   return "employee";
+});
+
+export const getViewAsTarget = cache(async (): Promise<ViewAsTarget | null> => {
+  const employeeId = readViewAsEmployeeId();
+  if (!employeeId) return null;
+  const realRole = await getRealUserRole();
+  if (realRole !== "admin" && realRole !== "manager") return null;
+  if (!(await canImpersonateEmployee(employeeId))) return null;
+  if (!isSupabaseConfigured()) {
+    const mock = mockEmployees.find((employee) => employee.id === employeeId);
+    if (!mock) return null;
+    return {
+      id: mock.id,
+      fullName: mock.full_name,
+      email: mock.email,
+      role: "employee",
+      employmentStatus: mock.employment_status,
+      employeeType: mock.employee_type,
+    };
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: employee } = await admin
+    .from("employees")
+    .select("id,full_name,email,employment_status,employee_type")
+    .eq("id", employeeId)
+    .maybeSingle();
+  if (!employee) return null;
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("email", employee.email.toLowerCase())
+    .maybeSingle();
+  const role: AppRole =
+    profile?.role === "admin" || profile?.role === "manager" || profile?.role === "employee"
+      ? profile.role
+      : "employee";
+
+  return {
+    id: employee.id,
+    fullName: employee.full_name.trim(),
+    email: employee.email,
+    role,
+    employmentStatus: employee.employment_status,
+    employeeType: employee.employee_type,
+  };
+});
+
+export async function getCurrentUserRole(): Promise<AppRole> {
+  const realRole = await getRealUserRole();
+  if (realRole !== "admin" && realRole !== "manager") return realRole;
+  const viewAs = await getViewAsTarget();
+  return viewAs?.role ?? realRole;
 }
 
 export async function getCurrentEmployee(): Promise<
@@ -184,6 +348,20 @@ export async function getCurrentEmployee(): Promise<
   } = await supabase.auth.getUser();
 
   if (!user?.email) return null;
+
+  const viewAs = await getViewAsTarget();
+  if (viewAs) {
+    const adminSupabase = createSupabaseAdminClient();
+    const { data, error } = await adminSupabase
+      .from("employees")
+      .select(
+        "id,full_name,email,manager_id,department,job_title,vacation_days_per_year,residence_country,employee_type,hourly_hours_source,employment_status,current_salary_amount,current_salary_currency,hire_date"
+      )
+      .eq("id", viewAs.id)
+      .maybeSingle();
+    if (error) return null;
+    return data;
+  }
 
   const adminSupabase = createSupabaseAdminClient();
   const { data, error } = await adminSupabase
@@ -312,7 +490,7 @@ export async function createEmployee(input: Record<string, unknown>) {
       amount: data.current_salary_amount,
       currency: data.current_salary_currency,
       effective_date: data.current_salary_effective_date ?? data.hire_date,
-      reason: "Initial salary from employee creation",
+      reason: data.employee_type === "hourly" ? "Tarifa inicial por hora" : "Salario inicial",
       created_by: user.id,
     });
   }
@@ -459,8 +637,13 @@ async function listEmployeeHistory<T extends { employee_id: string; effective_da
       .sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime());
   }
 
-  const supabase = createSupabaseServerClient();
-  const { data, error } = await supabase
+  const role = await getCurrentUserRole();
+  const currentEmployee = role === "admin" ? null : await getCurrentEmployee();
+  const allowed = await canViewEmployeeRecord(role, currentEmployee?.id, employeeId);
+  if (!allowed) return [];
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
     .from(table)
     .select("*")
     .eq("employee_id", employeeId)
@@ -980,7 +1163,8 @@ function parseEmployeeInput(input: Record<string, unknown>, options: { includeEm
   const manager_id = input.manager_id ? String(input.manager_id) : null;
   const hire_date = String(input.hire_date || "");
   const employment_status = String(input.employment_status || "active");
-  const vacation_days_per_year = Number(input.vacation_days_per_year || 30);
+  const vacation_days_per_year =
+    employee_type === "hourly" ? 0 : Number(input.vacation_days_per_year || 30);
   const notes = input.notes ? String(input.notes).trim() : null;
   const current_salary_amount = Number(input.current_salary_amount || 0);
   const current_salary_effective_date = input.current_salary_effective_date

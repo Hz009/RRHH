@@ -6,6 +6,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { Card } from "@/components/ui/card";
 import { Table } from "@/components/ui/table";
 import { employeeTypeLabel, paymentMethodLabel } from "@/lib/employee-display";
+import { readViewAsEmployeeId } from "@/lib/view-as";
 import { formatCurrency, formatDateOnlyLocal } from "@/lib/utils";
 import { getLastPunchEvent, isShiftOpenFromLastEvent } from "@/services/attendance.service";
 import { getCurrentEmployee, getMySalaryHistory } from "@/services/employees.service";
@@ -33,6 +34,7 @@ export default async function EmployeePortalPage() {
   ]);
 
   const shiftOpen = showPunch ? isShiftOpenFromLastEvent(lastPunch) : false;
+  const viewOnly = Boolean(readViewAsEmployeeId());
 
   return (
     <div>
@@ -61,11 +63,13 @@ export default async function EmployeePortalPage() {
             <p>
               <span className="font-medium text-zinc-700">Nombre:</span> {currentEmployee.full_name}
             </p>
-            <p className="md:col-span-2">
-              <Link href="/employee-portal/datos" className="text-lm-dark-teal underline">
-                Editar mis datos
-              </Link>
-            </p>
+            {viewOnly ? null : (
+              <p className="md:col-span-2">
+                <Link href="/employee-portal/datos" className="text-lm-dark-teal underline">
+                  Editar mis datos
+                </Link>
+              </p>
+            )}
             <p>
               <span className="font-medium text-zinc-700">Email:</span> {currentEmployee.email}
             </p>
@@ -76,7 +80,9 @@ export default async function EmployeePortalPage() {
               <span className="font-medium text-zinc-700">Cargo:</span> {currentEmployee.job_title}
             </p>
             <p>
-              <span className="font-medium text-zinc-700">Sueldo actual:</span>{" "}
+              <span className="font-medium text-zinc-700">
+                {currentEmployee.employee_type === "hourly" ? "Tarifa por hora:" : "Sueldo actual:"}
+              </span>{" "}
               {formatCurrency(Number(currentEmployee.current_salary_amount ?? 0), currentEmployee.current_salary_currency || "USD")}
             </p>
           </div>

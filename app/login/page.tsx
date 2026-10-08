@@ -35,8 +35,8 @@ export default async function LoginPage({
         </div>
       </div>
 
-      <div className="flex w-full items-center justify-center bg-lm-sky px-6 lg:w-1/2">
-        <div className="w-full max-w-sm">
+      <div className="flex w-full items-center justify-center bg-[radial-gradient(circle_at_top,_#ffffff_0%,_#e7f4f4_100%)] px-6 lg:w-1/2">
+        <div className="w-full max-w-sm rounded-3xl bg-white/90 p-8 shadow-[0_10px_40px_rgba(24,110,116,0.08)]">
           <div className="mb-8 lg:hidden">
             <p className="text-xs font-semibold tracking-widest text-lm-aqua uppercase">LinguaMeeting</p>
             <h2 className="mt-1 text-xl font-bold text-lm-dark-teal">HRIS Back Office</h2>

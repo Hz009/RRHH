@@ -1,7 +1,10 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+import { VIEW_AS_COOKIE } from "@/lib/view-as";
 
 import { createAuditLog } from "@/services/audit.service";
 import {
@@ -9,6 +12,8 @@ import {
   addSalaryRecord,
   createEmployee,
   deleteJobDepartmentRecord,
+  canImpersonateEmployee,
+  getEmployeeById,
   deleteSalaryRecord,
   resetEmployeePassword,
   updateEmployee,
@@ -169,4 +174,24 @@ export async function updateJobDepartmentRecordAction(formData: FormData) {
 
 export async function deleteJobDepartmentRecordAction(formData: FormData) {
   return saveHistoryAction(formData, "job", "delete", "job_delete", deleteJobDepartmentRecord);
+}
+
+export async function startViewAsAction(formData: FormData) {
+  const employeeId = String(formData.get("employee_id") ?? "");
+  const employee = employeeId ? await getEmployeeById(employeeId) : null;
+  if (!employee || !(await canImpersonateEmployee(employee.id))) {
+    redirect("/employees");
+  }
+  cookies().set(VIEW_AS_COOKIE, employee.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+  });
+  redirect("/dashboard");
+}
+
+export async function stopViewAsAction() {
+  cookies().set(VIEW_AS_COOKIE, "", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 0 });
+  redirect("/dashboard");
 }

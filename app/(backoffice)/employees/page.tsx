@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { startViewAsAction } from "@/app/(backoffice)/employees/actions";
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Table } from "@/components/ui/table";
 import { employmentStatusLabel } from "@/lib/employee-display";
 import { LINGUAMEETING_DEPARTMENTS } from "@/lib/employee-taxonomy";
 import { formatCurrency } from "@/lib/utils";
-import { getCurrentUserRole, getEmployeesPaged } from "@/services/employees.service";
+import { getCurrentEmployee, getCurrentUserRole, getEmployeesPaged } from "@/services/employees.service";
 
 interface EmployeesPageProps {
   searchParams: {
@@ -26,7 +27,7 @@ interface EmployeesPageProps {
 
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
   const page = Math.max(1, parseInt(String(searchParams.page ?? "1"), 10) || 1);
-  const [{ employees, total, page: safePage, pageSize }, role] = await Promise.all([
+  const [{ employees, total, page: safePage, pageSize }, role, currentEmployee] = await Promise.all([
     getEmployeesPaged({
       query: searchParams.q,
       department: searchParams.department,
@@ -37,8 +38,10 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
       pageSize: 10,
     }),
     getCurrentUserRole(),
+    getCurrentEmployee(),
   ]);
   const isAdmin = role === "admin";
+  const canOpenPortals = isAdmin || role === "manager";
   const savedCreate = searchParams.saved === "create";
   const savedUpdate = searchParams.saved === "update";
 
@@ -121,7 +124,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                 <th className="px-4 py-3 font-medium">Cargo</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3 font-medium">Salario actual</th>
-                {isAdmin ? <th className="px-4 py-3 font-medium">Acciones</th> : null}
+                {canOpenPortals ? <th className="px-4 py-3 font-medium">Acciones</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -143,12 +146,28 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                   <td className="px-4 py-3">
                     {formatCurrency(employee.current_salary_amount, employee.current_salary_currency)}
                   </td>
-                  {isAdmin ? (
+                  {canOpenPortals ? (
                     <td className="px-4 py-3">
-                      <div className="flex gap-3 text-xs">
-                        <Link href={`/employees/${employee.id}/edit`} className="text-lm-aqua hover:text-lm-aqua">
-                          Editar
-                        </Link>
+                      <div className="flex items-center gap-2">
+                        {isAdmin ? (
+                          <Link
+                            href={`/employees/${employee.id}/edit`}
+                            className="inline-flex h-8 items-center rounded-full bg-white px-3 text-xs font-semibold text-lm-dark-teal ring-1 ring-lm-aqua/30 transition hover:bg-lm-sky"
+                          >
+                            Editar
+                          </Link>
+                        ) : null}
+                        {isAdmin || employee.id !== currentEmployee?.id ? (
+                          <form action={startViewAsAction}>
+                            <input type="hidden" name="employee_id" value={employee.id} />
+                            <button
+                              type="submit"
+                              className="inline-flex h-8 items-center rounded-full bg-lm-dark-teal px-3 text-xs font-semibold text-white transition hover:bg-lm-aqua-dark"
+                            >
+                              Ver portal
+                            </button>
+                          </form>
+                        ) : null}
                       </div>
                     </td>
                   ) : null}

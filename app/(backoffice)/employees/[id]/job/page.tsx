@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { Topbar } from "@/components/layout/topbar";
 import { Card, Notice } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import {
   LINGUAMEETING_JOB_TITLES,
   selectOptionsFromCatalog,
 } from "@/lib/employee-taxonomy";
-import { getCurrentUserRole, getEmployeeById, getJobDepartmentHistory } from "@/services/employees.service";
+import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById, getJobDepartmentHistory } from "@/services/employees.service";
 
 interface EmployeeJobHistoryPageProps {
   params: {
@@ -22,13 +22,15 @@ interface EmployeeJobHistoryPageProps {
 }
 
 export default async function EmployeeJobHistoryPage({ params, searchParams }: EmployeeJobHistoryPageProps) {
-  const [employee, history, role] = await Promise.all([
+  const [employee, history, role, currentEmployee] = await Promise.all([
     getEmployeeById(params.id),
     getJobDepartmentHistory(params.id),
     getCurrentUserRole(),
+    getCurrentEmployee(),
   ]);
 
   if (!employee) notFound();
+  if (!(await canViewEmployeeRecord(role, currentEmployee?.id, employee.id))) redirect("/employees");
   const isAdmin = role === "admin";
 
   const addDeptOptions = selectOptionsFromCatalog(LINGUAMEETING_DEPARTMENTS, employee.department);

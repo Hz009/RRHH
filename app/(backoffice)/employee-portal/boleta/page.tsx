@@ -5,6 +5,7 @@ import { PayslipSheet } from "@/components/employee-portal/payslip-sheet";
 import { Topbar } from "@/components/layout/topbar";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/card";
+import { readViewAsEmployeeId } from "@/lib/view-as";
 import { buildMyPayslip } from "@/services/payslip.service";
 
 interface BoletaPageProps {
@@ -16,6 +17,7 @@ export default async function BoletaPage({ searchParams }: BoletaPageProps) {
   const payslip = await buildMyPayslip(month);
   if (!payslip) redirect("/employee-portal");
   const declined = searchParams.respuesta === "no";
+  const viewOnly = Boolean(readViewAsEmployeeId());
 
   return (
     <div>
@@ -31,6 +33,9 @@ export default async function BoletaPage({ searchParams }: BoletaPageProps) {
             Descarga el PDF solo si el salario, los bonos, los incentivos y los descuentos están bien. Al aceptarlo confirmas que la boleta es correcta. Si algo no cuadra, no aceptes y contacta a soporte.
           </Notice>
         )}
+        {viewOnly ? (
+          <p className="text-sm text-zinc-600">Solo puedes ver esta boleta. No puedes aceptarla ni descargarla.</p>
+        ) : (
         <div className="flex flex-wrap gap-3">
           <form action="/employee-portal/boleta/download" method="post">
             <input type="hidden" name="month" value={payslip.periodMonth} />
@@ -47,6 +52,7 @@ export default async function BoletaPage({ searchParams }: BoletaPageProps) {
             Volver a mis pagos
           </Link>
         </div>
+        )}
       </div>
     </div>
   );

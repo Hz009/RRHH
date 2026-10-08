@@ -46,3 +46,32 @@ a:focus-visible {
   outline: 2px solid var(--lm-aqua);
   outline-offset: 2px;
 }
+
+main table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+main thead th {
+  background: #f7fbfb;
+  color: var(--lm-dark-teal);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+main tbody tr {
+  transition: background-color 160ms ease;
+}
+
+main tbody tr:hover {
+  background: #f8fcfc;
+}
+
+.view-only form button,
+.view-only form input,
+.view-only form select,
+.view-only form textarea {
+  pointer-events: none;
+}

@@ -12,7 +12,7 @@ import { Card, Notice } from "@/components/ui/card";
 import { recurrenceLabel } from "@/lib/payslip";
 import { formatCurrency } from "@/lib/utils";
 import { describeAdjustment, listPayAdjustments } from "@/services/pay-adjustments.service";
-import { getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
+import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
 
 interface AdjustmentsPageProps {
   params: { id: string };
@@ -28,10 +28,7 @@ export default async function AdjustmentsPage({ params, searchParams }: Adjustme
   ]);
   if (!employee) notFound();
 
-  const canView =
-    role === "admin" ||
-    (role === "manager" && currentEmployee && (employee.id === currentEmployee.id || employee.manager_id === currentEmployee.id)) ||
-    (role === "employee" && currentEmployee?.id === employee.id);
+  const canView = await canViewEmployeeRecord(role, currentEmployee?.id, employee.id);
   if (!canView) redirect("/employees");
 
   const isAdmin = role === "admin";

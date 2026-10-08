@@ -165,6 +165,10 @@ export async function createVacationRequest(input: Record<string, unknown>) {
   const allRequests = await getVacationRequests(new Date(start_date).getFullYear());
   const employeeData = allEmployees.find((e) => e.id === employee_id);
 
+  if (role === "manager" && !employeeData) {
+    throw new Error("Solo puedes pedir vacaciones o permisos para las personas de tu equipo.");
+  }
+
   if (employeeData) {
     if (employeeData.employment_status !== "active") {
       throw new Error("Solo un empleado activo puede solicitar vacaciones.");
@@ -174,6 +178,10 @@ export async function createVacationRequest(input: Record<string, unknown>) {
       throw new Error(
         `No se pueden solicitar vacaciones antes de la fecha de contratacion (${employeeData.hire_date}).`
       );
+    }
+
+    if (requestKind === "vacation" && employeeData.employee_type === "hourly") {
+      throw new Error("Las vacaciones solo aplican a Full time y Part time. Puedes pedir un permiso.");
     }
 
     if (requestKind === "vacation") {

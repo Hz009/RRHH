@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { matchPayrollSelectValue, payrollCurrencySelectOptions } from "@/lib/countries";
 import { formatCurrency, formatDate, formatDateOnlyLocal, toDateInputValue } from "@/lib/utils";
 import { getMonthlyBonusesForEmployee } from "@/services/bonuses.service";
-import { getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
+import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById } from "@/services/employees.service";
 
 interface BonusesPageProps {
   params: { id: string };
@@ -35,12 +35,7 @@ export default async function EmployeeBonusesPage({ params, searchParams }: Bonu
 
   if (!employee) notFound();
 
-  const canView =
-    role === "admin" ||
-    (role === "manager" &&
-      currentEmployee &&
-      (employee.id === currentEmployee.id || employee.manager_id === currentEmployee.id)) ||
-    (role === "employee" && currentEmployee && employee.id === currentEmployee.id);
+  const canView = await canViewEmployeeRecord(role, currentEmployee?.id, employee.id);
 
   if (!canView) {
     redirect("/employees");
