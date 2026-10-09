@@ -3,7 +3,7 @@
 import { useFormState } from "react-dom";
 
 import { updateDirectReportManagerAction } from "@/app/(backoffice)/employees/actions";
-import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 
 interface TeamManagerFormProps {
   employeeId: string;
@@ -31,7 +31,9 @@ export function TeamManagerForm({ employeeId, managerId, options }: TeamManagerF
           ))}
         </select>
       </div>
-      <Button type="submit">Guardar manager</Button>
+      <ConfirmSubmitButton type="submit" confirmMessage="Confirma que deseas guardar este manager.">
+        Guardar manager
+      </ConfirmSubmitButton>
       {state?.error ? <p className="text-sm text-red-700">{state.error}</p> : null}
     </form>
   );

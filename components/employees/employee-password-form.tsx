@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useFormState } from "react-dom";
 
 import { resetEmployeePasswordAction } from "@/app/(backoffice)/employees/actions";
-import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 
 const labelClass = "mb-1 block text-sm font-medium text-lm-dark-teal";
@@ -39,9 +39,9 @@ export function EmployeePasswordForm({ employeeId }: { employeeId: string }) {
         <label className={labelClass}>Confirmar contraseña</label>
         <Input type="password" name="confirm_password" autoComplete="new-password" minLength={8} required />
       </div>
-      <Button type="submit" variant="primary" className="w-full sm:w-auto">
+      <ConfirmSubmitButton type="submit" variant="primary" className="w-full sm:w-auto" confirmMessage="Confirma que deseas actualizar esta contrasena.">
         Actualizar contraseña
-      </Button>
+      </ConfirmSubmitButton>
     </form>
   );
 }

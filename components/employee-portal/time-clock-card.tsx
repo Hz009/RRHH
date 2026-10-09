@@ -3,7 +3,7 @@
 import { useFormState } from "react-dom";
 
 import { punchClockAction } from "@/app/(backoffice)/employee-portal/actions";
-import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 
 interface TimeClockCardProps {
   shiftOpen: boolean;
@@ -29,9 +29,14 @@ export function TimeClockCard({ shiftOpen }: TimeClockCardProps) {
       ) : null}
       <form action={formAction} className="mt-3 flex flex-wrap gap-2">
         <input type="hidden" name="event_type" value={shiftOpen ? "clock_out" : "clock_in"} />
-        <Button type="submit" variant="primary" className="min-h-10">
+        <ConfirmSubmitButton
+          type="submit"
+          variant="primary"
+          className="min-h-10"
+          confirmMessage={shiftOpen ? "Confirma que deseas fichar la salida." : "Confirma que deseas fichar la entrada."}
+        >
           {shiftOpen ? "Fichar salida" : "Fichar entrada"}
-        </Button>
+        </ConfirmSubmitButton>
       </form>
     </div>
   );

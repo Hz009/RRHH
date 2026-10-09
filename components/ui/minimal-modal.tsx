@@ -54,7 +54,7 @@ export function MinimalModal({
       <button
         type="button"
         aria-label="Cerrar"
-        className="absolute inset-0 bg-zinc-900/35 backdrop-blur-[3px] transition-opacity duration-200"
+        className="absolute inset-0 bg-lm-dark-teal/45 transition-opacity duration-200"
         onClick={onClose}
       />
       <div
@@ -64,14 +64,14 @@ export function MinimalModal({
         className={cn(
           "relative z-10 w-full duration-200",
           maxW[size],
-          "rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-2xl shadow-zinc-900/8"
+          "rounded-3xl border border-lm-aqua/30 bg-white p-6 shadow-[0_20px_60px_rgba(24,110,116,0.18)]"
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="minimal-modal-title" className="text-base font-semibold tracking-tight text-zinc-900">
+        <h2 id="minimal-modal-title" className="text-base font-semibold tracking-tight text-lm-dark-teal">
           {title}
         </h2>
-        {description ? <p className="mt-2 text-sm leading-relaxed text-zinc-500">{description}</p> : null}
+        {description ? <p className="mt-2 text-sm leading-relaxed text-lm-dark-teal">{description}</p> : null}
         {children ? <div className={description || title ? "mt-5" : ""}>{children}</div> : null}
         {footer ? <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">{footer}</div> : null}
       </div>

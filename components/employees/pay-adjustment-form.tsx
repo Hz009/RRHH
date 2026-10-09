@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { DISCOUNT_TYPES, INCENTIVE_TYPES } from "@/lib/payslip";
 
@@ -57,7 +57,9 @@ export function PayAdjustmentForm({ employeeId }: { employeeId: string }) {
         <Input name="period_month" type="month" required />
       </div>
       <div className="flex items-end">
-        <Button type="submit">Guardar</Button>
+        <ConfirmSubmitButton type="submit" confirmMessage="Confirma que deseas guardar este incentivo o descuento.">
+          Guardar
+        </ConfirmSubmitButton>
       </div>
     </div>
   );

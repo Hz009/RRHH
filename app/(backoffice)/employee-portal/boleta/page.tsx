@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { PayslipSheet } from "@/components/employee-portal/payslip-sheet";
 import { Topbar } from "@/components/layout/topbar";
-import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Notice } from "@/components/ui/card";
 import { readViewAsEmployeeId } from "@/lib/view-as";
 import { buildMyPayslip } from "@/services/payslip.service";
@@ -40,7 +40,9 @@ export default async function BoletaPage({ searchParams }: BoletaPageProps) {
           <form action="/employee-portal/boleta/download" method="post">
             <input type="hidden" name="month" value={payslip.periodMonth} />
             <input type="hidden" name="decision" value="accept" />
-            <Button type="submit">Acepto, está bien. Descargar PDF</Button>
+            <ConfirmSubmitButton type="submit" confirmMessage="Confirmas que la boleta esta bien y deseas descargar el PDF.">
+              Acepto, está bien. Descargar PDF
+            </ConfirmSubmitButton>
           </form>
           <Link
             href={`/employee-portal/boleta?month=${payslip.periodMonth}&respuesta=no`}

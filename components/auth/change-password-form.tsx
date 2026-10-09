@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -84,9 +84,9 @@ export function ChangePasswordForm() {
 
       {error ? <p className="rounded-xl border border-lm-orange/40 bg-lm-orange-light px-3 py-2 text-sm text-lm-orange">{error}</p> : null}
 
-      <Button type="submit" disabled={isSubmitting}>
+      <ConfirmSubmitButton type="submit" disabled={isSubmitting} confirmMessage="Confirma que deseas guardar la nueva contrasena.">
         {isSubmitting ? "Guardando..." : "Cambiar contrasena"}
-      </Button>
+      </ConfirmSubmitButton>
     </form>
   );
 }

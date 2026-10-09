@@ -11,7 +11,9 @@ import {
   adminFlexHoursLedgerAction,
   adminUpdateAttendanceAction,
 } from "@/app/(backoffice)/employees/[id]/time/actions";
+import { BrandDialog } from "@/components/ui/brand-dialog";
 import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { MinimalModal } from "@/components/ui/minimal-modal";
 import {
@@ -39,6 +41,7 @@ function AdminPunchSegmentRow({
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [askSave, setAskSave] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -217,9 +220,18 @@ function AdminPunchSegmentRow({
             >
               Cancelar
             </Button>
-            <Button type="button" variant="primary" className="w-full sm:w-auto" disabled={pending} onClick={runSaveEdits}>
+            <Button type="button" variant="primary" className="w-full sm:w-auto" disabled={pending} onClick={() => setAskSave(true)}>
               {pending ? "Guardando…" : "Guardar"}
             </Button>
+            <BrandDialog
+              open={askSave}
+              message="Confirma que deseas guardar este cambio de horario."
+              onCancel={() => setAskSave(false)}
+              onConfirm={() => {
+                setAskSave(false);
+                runSaveEdits();
+              }}
+            />
           </>
         }
       >
@@ -261,6 +273,7 @@ function AdminOtherAttendanceRow({ employeeId, row }: { employeeId: string; row:
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [askSave, setAskSave] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -394,9 +407,18 @@ function AdminOtherAttendanceRow({ employeeId, row }: { employeeId: string; row:
             >
               Cancelar
             </Button>
-            <Button type="button" variant="primary" className="w-full sm:w-auto" disabled={pending} onClick={runSave}>
+            <Button type="button" variant="primary" className="w-full sm:w-auto" disabled={pending} onClick={() => setAskSave(true)}>
               {pending ? "Guardando…" : "Guardar"}
             </Button>
+            <BrandDialog
+              open={askSave}
+              message="Confirma que deseas guardar este cambio."
+              onCancel={() => setAskSave(false)}
+              onConfirm={() => {
+                setAskSave(false);
+                runSave();
+              }}
+            />
           </>
         }
       >
@@ -441,9 +463,9 @@ export function AdminAddAttendanceForm({ employeeId }: { employeeId: string }) {
       </div>
       {state?.error ? <p className="md:col-span-2 text-xs text-red-600">{state.error}</p> : null}
       <div className="md:col-span-2">
-        <Button type="submit" variant="secondary" className="text-xs">
+        <ConfirmSubmitButton type="submit" variant="secondary" className="text-xs" confirmMessage="Confirma que deseas registrar este fichaje.">
           Registrar fichaje
-        </Button>
+        </ConfirmSubmitButton>
       </div>
     </form>
   );
@@ -517,9 +539,9 @@ export function AdminFlexHoursForm({ employeeId }: { employeeId: string }) {
       </div>
       {state?.error ? <p className="md:col-span-2 text-xs text-red-600">{state.error}</p> : null}
       <div className="md:col-span-2 lg:col-span-4">
-        <Button type="submit" variant="secondary" className="text-xs">
+        <ConfirmSubmitButton type="submit" variant="secondary" className="text-xs" confirmMessage="Confirma que deseas registrar este movimiento de horas.">
           Registrar movimiento
-        </Button>
+        </ConfirmSubmitButton>
       </div>
     </form>
   );

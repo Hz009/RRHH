@@ -5,6 +5,7 @@ import { registerMonthlyPaymentsAction, upsertMonthlyHoursAction } from "@/app/(
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Card, Notice } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
@@ -272,9 +273,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                           defaultValue={row.monthHours}
                           className="h-8 w-24"
                         />
-                        <Button type="submit" className="h-8 px-3 text-xs">
+                        <ConfirmSubmitButton type="submit" className="h-8 px-3 text-xs" confirmMessage="Confirma que deseas guardar estas horas.">
                           Guardar
-                        </Button>
+                        </ConfirmSubmitButton>
                       </form>
                     ) : row.hourlyHoursSource === "punch" ? (
                       <span>
@@ -312,7 +313,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         <form id="register-payments-form" action={registerMonthlyPaymentsAction} className="mt-3 space-y-2">
           <input type="hidden" name="period_month" value={month} />
           <input type="hidden" name="ret_qs" value={retQs} />
-          <Button type="submit">Registrar pagos seleccionados</Button>
+          <ConfirmSubmitButton type="submit" confirmMessage="Confirma que deseas registrar los pagos seleccionados.">
+            Registrar pagos seleccionados
+          </ConfirmSubmitButton>
         </form>
       </div>
     </div>

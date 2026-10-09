@@ -7,7 +7,7 @@ import {
 } from "@/app/(backoffice)/employees/[id]/adjustments/actions";
 import { PayAdjustmentForm } from "@/components/employees/pay-adjustment-form";
 import { Topbar } from "@/components/layout/topbar";
-import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Card, Notice } from "@/components/ui/card";
 import { recurrenceLabel } from "@/lib/payslip";
 import { formatCurrency } from "@/lib/utils";
@@ -75,7 +75,9 @@ export default async function AdjustmentsPage({ params, searchParams }: Adjustme
                     <form action={deactivatePayAdjustmentAction}>
                       <input type="hidden" name="employee_id" value={employee.id} />
                       <input type="hidden" name="id" value={row.id} />
-                      <Button type="submit" variant="ghost">Quitar</Button>
+                      <ConfirmSubmitButton type="submit" variant="ghost" confirmMessage="Confirma que deseas quitar este incentivo o descuento.">
+                        Quitar
+                      </ConfirmSubmitButton>
                     </form>
                   ) : null}
                 </li>

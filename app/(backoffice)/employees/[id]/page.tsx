@@ -10,6 +10,7 @@ import { bankAccountTypeLabel, employeeTypeLabel, employmentStatusLabel, payment
 import { formatCurrency, formatDate, formatDateOnlyLocal } from "@/lib/utils";
 import { getMonthlyBonusesForEmployee } from "@/services/bonuses.service";
 import { setEmployeeLoansAccessAction } from "@/app/(backoffice)/employees/actions";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { canViewEmployeeRecord, getCurrentEmployee, getCurrentUserRole, getEmployeeById, isLoansEnabledForEmail } from "@/services/employees.service";
 
 interface EmployeeProfilePageProps {
@@ -322,9 +323,9 @@ export default async function EmployeeProfilePage({ params, searchParams }: Empl
                 <input type="checkbox" name="loans_enabled" defaultChecked={loansEnabled} className="h-4 w-4 accent-lm-dark-teal" />
                 Prestamo activo
               </label>
-              <button type="submit" className="rounded-lg bg-lm-dark-teal px-3 py-1.5 text-sm font-semibold text-white">
+              <ConfirmSubmitButton type="submit" confirmMessage="Confirma que deseas guardar el acceso a prestamos.">
                 Guardar
-              </button>
+              </ConfirmSubmitButton>
             </form>
           </Card>
         ) : null}
